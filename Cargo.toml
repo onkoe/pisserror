@@ -1,0 +1,9 @@
+[package]
+name = "pisserror"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+
+[workspace]
+members = ["macros"]
