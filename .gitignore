@@ -1,1 +1,4 @@
+# rust
 /target
+# avoid including lock files for libraries
+**/Cargo.lock
