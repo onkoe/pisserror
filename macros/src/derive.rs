@@ -3,11 +3,13 @@
 //! Contains the `#[derive(Error)]` part of pisserror.
 
 use proc_macro::TokenStream;
-use proc_macro2::{Span, TokenStream as TokenStream2};
-use quote::{quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned as _, DeriveInput, Item, Variant};
+use quote::quote_spanned;
+use syn::{parse_macro_input, spanned::Spanned as _, DeriveInput, Item};
 
-use crate::util::create_path;
+use crate::{
+    error::{cause, description, source},
+    util::create_path,
+};
 
 pub fn derive_error(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -58,62 +60,5 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
             compile_error!("You must use an `enum` when deriving types with `pisserror`.");
         }
         .into()
-    }
-}
-
-/// Parses the user's enum's variants to check for any internal `#[from]`
-/// attributes, then generates code that matches on any given error variant.
-fn source<'a>(span: Span, variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
-    let from_attr = create_path(span, &["from"]);
-
-    // make a new hashmap to store variants' attribute field, if it's even there!
-    let mut vec = vec![];
-
-    // check for any `from` attributes on variants
-    for v in variants {
-        let mut t = None;
-        for f in &v.fields {
-            // if any of a variant's fields have the from attribute...
-            if f.attrs.iter().any(|attr| *attr.meta.path() == from_attr) {
-                // ...use that field in the source method impl
-                t = Some(f.ty.clone());
-            }
-        }
-
-        let identifer = v.ident.clone();
-        vec.push(quote! {
-            #identifer(#v.fields*) => #t,
-        });
-    }
-
-    // TODO: use the vec
-    quote! {
-        fn source(&self) -> Option<&(dyn Error + 'static)> {
-            None
-        }
-    }
-}
-
-/// The method this generates is deprecated in favor of `Display`/`ToString`
-/// on Error types, so we can safely return an empty string slice.
-fn description() -> TokenStream2 {
-    // TODO: consider using `Display` instead? check with other libraries b4.
-
-    quote! {
-        fn description(&self) -> &str {
-            &""
-        }
-    }
-}
-
-/// The empty "cause" of the error. Now deprecated in favor of `source`, which
-/// has the 'static bound.
-///
-/// As such, the method it generates always returns None.
-fn cause() -> TokenStream2 {
-    quote! {
-        fn cause(&self) -> Option<&dyn Error> {
-            None
-        }
     }
 }

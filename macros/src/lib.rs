@@ -7,6 +7,8 @@
 use proc_macro::TokenStream;
 
 mod derive;
+pub(crate) mod display;
+pub(crate) mod error;
 mod util;
 
 /// Derives `core::error::Error` from special syntax.
