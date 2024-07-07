@@ -24,7 +24,7 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
         // HEY! the compiler already does this for us! a nice error message might be preferable, though!
 
         // assemble the match arms
-        let source = source(variants.iter());
+        let source = source(after_span, variants.iter()); // TODO: check after_span
         let description = description();
         let cause = cause();
 
@@ -58,8 +58,30 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
 /// attributes, then generates code that matches on any given error variant.
-fn source<'a>(variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
-    // TODO: check for any `from` attributes on variants
+fn source<'a>(span: Span, variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
+    let from_attr = create_path(span, &["from"]);
+
+    // make a new hashmap to store variants' attribute field, if it's even there!
+    let mut vec = vec![];
+
+    // check for any `from` attributes on variants
+    for v in variants {
+        let mut t = None;
+        for f in &v.fields {
+            // if any of a variant's fields have the from attribute...
+            if f.attrs.iter().any(|attr| *attr.meta.path() == from_attr) {
+                // ...use that field in the source method impl
+                t = Some(f.ty.clone());
+            }
+        }
+
+        let identifer = v.ident.clone();
+        vec.push(quote! {
+            #identifer(#v.fields*) => #t,
+        });
+    }
+
+    // TODO: use the vec
     quote! {
         fn source(&self) -> Option<&(dyn Error + 'static)> {
             None
