@@ -12,7 +12,7 @@ pub(crate) mod error;
 mod util;
 
 /// Derives `core::error::Error` from special syntax.
-#[proc_macro_derive(Error)]
+#[proc_macro_derive(Error, attributes(error, from))]
 pub fn derive_error(input: TokenStream) -> TokenStream {
     // FIXME: all derives must be in the root module for some reason...
     derive::derive_error(input)
