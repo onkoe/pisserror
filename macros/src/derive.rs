@@ -28,8 +28,6 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
         let description = description();
         let cause = cause();
 
-        // previous version of "source" - deprecated, so leave blank.
-
         // put all those together!
         let impl_block = quote_spanned! {input_span=>
             // TODO: check each variant and get info on their `#[error(...)]` attribute.
@@ -58,7 +56,8 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
     }
 }
 
-/// err: Option<&(dyn std::error::Error + 'static)>
+/// Parses the user's enum's variants to check for any internal `#[from]`
+/// attributes, then generates code that matches on any given error variant.
 fn source<'a>(variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
     // TODO: check for any `from` attributes on variants
     quote! {
@@ -68,9 +67,11 @@ fn source<'a>(variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
     }
 }
 
-// these days, you implement Display instead. deprecated - leave blank.
-// TODO: consider calling Display/ToString instead of blank str slice ref?
+/// The method this generates is deprecated in favor of `Display`/`ToString`
+/// on Error types, so we can safely return an empty string slice.
 fn description() -> TokenStream2 {
+    // TODO: consider using `Display` instead? check with other libraries b4.
+
     quote! {
         fn description(&self) -> &str {
             &""
@@ -78,6 +79,10 @@ fn description() -> TokenStream2 {
     }
 }
 
+/// The empty "cause" of the error. Now deprecated in favor of `source`, which
+/// has the 'static bound.
+///
+/// As such, the method it generates always returns None.
 fn cause() -> TokenStream2 {
     quote! {
         fn cause(&self) -> Option<&dyn Error> {
