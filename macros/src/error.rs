@@ -8,7 +8,10 @@ use crate::util::create_path;
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
 /// attributes, then generates code that matches on any given error variant.
-pub fn source<'a>(span: Span2, variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
+pub fn source<'a>(
+    span: Span2,
+    variants: impl Iterator<Item = &'a Variant>,
+) -> syn::Result<TokenStream2> {
     let from_attr = create_path(span, &["from"]);
 
     // make a new hashmap to store variants' attribute field, if it's even there!
@@ -32,11 +35,11 @@ pub fn source<'a>(span: Span2, variants: impl Iterator<Item = &'a Variant>) -> T
     }
 
     // TODO: use the vec
-    quote! {
+    Ok(quote! {
         fn source(&self) -> Option<&(dyn Error + 'static)> {
             None
         }
-    }
+    })
 }
 
 /// The method this generates is deprecated in favor of `Display`/`ToString`

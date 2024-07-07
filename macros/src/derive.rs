@@ -37,7 +37,7 @@ pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
     // HEY! the compiler already does this for us! a nice error message might be preferable, though!
 
     // assemble the match arms
-    let source = source(after_span, variants.iter()); // TODO: check after_span
+    let source = source(after_span, variants.iter())?; // TODO: check after_span
     let description = description();
     let cause = cause();
 

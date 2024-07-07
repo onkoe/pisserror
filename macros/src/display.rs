@@ -6,7 +6,10 @@ use crate::util::create_path;
 
 // TODO: check each variant and get info on their `#[error(...)]` attribute.
 
-pub fn format<'a>(span: Span2, variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
+pub fn format<'a>(
+    span: Span2,
+    variants: impl Iterator<Item = &'a Variant>,
+) -> syn::Result<TokenStream2> {
     // for v in variants
     //      for attr in v.attrs
     //          if attr is #[error(...)]
@@ -27,13 +30,11 @@ pub fn format<'a>(span: Span2, variants: impl Iterator<Item = &'a Variant>) -> T
                 // TODO: maybe respect inherited Display on `#[from]` variants
                 //       where we get Meta::Path instead.
 
-                // complain if user gave didn't give anything to
+                // complain if user gave didn't give an error message
                 let Meta::List(ref attr_args) = attr.meta else {
-                    return quote! {
-                        compile_error!(
-                            "All variants must be given something to print, as\
-                            the trait is defined as: `Error: Debug + Display`.");
-                    };
+                    let err_msg = "All variants must be given something to print, as\
+                        the trait is defined as: `Error: Debug + Display`.";
+                    return Err(syn::Error::new_spanned(attr, err_msg));
                 };
 
                 // TODO: parse attr args correctly!!!
@@ -41,9 +42,10 @@ pub fn format<'a>(span: Span2, variants: impl Iterator<Item = &'a Variant>) -> T
                     #v.ident => {format!(#attr_args)}
                 });
             } else {
-                return quote! {
-                    compile_error!("Each variant must have a corresponding `#[error(...)` attribute.");
-                };
+                return Err(syn::Error::new_spanned(
+                    v,
+                    "Each variant must have a corresponding `#[error(...)` attribute.",
+                ));
             }
         }
     }
