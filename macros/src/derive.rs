@@ -3,9 +3,11 @@
 //! Contains the `#[derive(Error)]` part of pisserror.
 
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{quote, quote_spanned};
 use syn::{parse_macro_input, spanned::Spanned as _, DeriveInput, Item, Variant};
+
+use crate::util::create_path;
 
 pub fn derive_error(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -30,18 +32,21 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
         let description = description();
         let cause = cause();
 
+        let error_path = create_path(input_span, &["std", "error", "Error"]);
+        let display_path = create_path(input_span, &["core", "fmt", "Display"]);
+
         // put all those together!
         let impl_block = quote_spanned! {after_span=>
             // TODO: check each variant and get info on their `#[error(...)]` attribute.
             #[automatically_derived]
-            impl std::error::Error for #name {
+            impl #error_path for #name {
                 #source
                 #description
                 #cause
             }
 
             #[automatically_derived]
-            impl core::fmt::Display for #name {
+            impl #display_path for #name {
                 compile_error!("TODO: Display is not yet implemented.")
             }
         };
