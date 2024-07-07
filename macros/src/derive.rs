@@ -39,7 +39,8 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
 
         // put all those together!
         let impl_block = quote_spanned! {after_span=>
-            // TODO: check each variant and get info on their `#[error(...)]` attribute.
+            use #error_path;
+
             #[automatically_derived]
             impl #error_path for #name {
                 #source

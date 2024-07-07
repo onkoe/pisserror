@@ -4,7 +4,7 @@ use syn::Variant;
 
 use crate::util::create_path;
 
-/// pub fn create_error_impl() { // TODO?: call all these fns in here! }
+// pub fn create_error_impl() { // TODO?: call all these fns in here! }
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
 /// attributes, then generates code that matches on any given error variant.
