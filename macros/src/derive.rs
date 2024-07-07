@@ -3,8 +3,9 @@
 //! Contains the `#[derive(Error)]` part of pisserror.
 
 use proc_macro::TokenStream;
+use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned as _, DeriveInput, Item};
+use syn::{parse_macro_input, spanned::Spanned as _, DeriveInput, Item, Variant};
 
 pub fn derive_error(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -12,44 +13,31 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
 
     // make sure we've been given an enum.
     if let Item::Enum(item) = Item::from(input) {
-        // check each variant and get info on their `#[error(...)]` attribute.
         let name = item.ident;
+        let variants = item.variants;
 
-        // ensure it implements `Debug`. this is one of the bounds of `core::error::Error`, so it's a good check to have...
+        // Rust's Error type is defined as: `Error: Debug + Display`. to satisfy
+        // `Debug`, we need to make sure the enum implements it.
+        //
         // let debug_check = ...; // TODO: do some fancy checks. maybe assertions with an internal type?
+        //
+        // HEY! the compiler already does this for us! a nice error message might be preferable, though!
 
         // assemble the match arms
-        let fn_source = {
-            // TODO: check for any `from` attributes on variants
-            quote! {
-                fn source(&self) -> Option<&(dyn Error + 'static)> {
-                    None
-                }
-            }
-        };
-
-        // these days, you implement Display instead. deprecated - leave blank.
-        // TODO: consider calling Display/ToString instead of blank str slice ref?
-        let fn_description = quote! {
-            fn description(&self) -> &str {
-                &""
-            }
-        };
+        let source = source(variants.iter());
+        let description = description();
+        let cause = cause();
 
         // previous version of "source" - deprecated, so leave blank.
-        let fn_cause = quote! {
-            fn cause(&self) -> Option<&dyn Error> {
-                None
-            }
-        };
 
         // put all those together!
         let impl_block = quote_spanned! {input_span=>
+            // TODO: check each variant and get info on their `#[error(...)]` attribute.
             #[automatically_derived]
-            impl core::error::Error for #name {
-                #fn_source
-                #fn_description
-                #fn_cause
+            impl std::error::Error for #name {
+                #source
+                #description
+                #cause
 
                 compile_error!("TODO: Error is not yet implemented.")
             }
@@ -70,10 +58,30 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
     }
 }
 
-/// Rust's Error type is defined as: `Error: Debug + Display`. to satisfy
-/// `Debug`, we need to make sure the enum implements it.
-///
-/// this function returns a token stream that contains a
-pub fn check_enum_impl_debug(item: Item) -> TokenStream {
-    todo!()
+/// err: Option<&(dyn std::error::Error + 'static)>
+fn source<'a>(variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
+    // TODO: check for any `from` attributes on variants
+    quote! {
+        fn source(&self) -> Option<&(dyn Error + 'static)> {
+            None
+        }
+    }
+}
+
+// these days, you implement Display instead. deprecated - leave blank.
+// TODO: consider calling Display/ToString instead of blank str slice ref?
+fn description() -> TokenStream2 {
+    quote! {
+        fn description(&self) -> &str {
+            &""
+        }
+    }
+}
+
+fn cause() -> TokenStream2 {
+    quote! {
+        fn cause(&self) -> Option<&dyn Error> {
+            None
+        }
+    }
 }
