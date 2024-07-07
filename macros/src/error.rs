@@ -1,4 +1,4 @@
-use proc_macro2::{Span, TokenStream as TokenStream2};
+use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use syn::Variant;
 
@@ -8,7 +8,7 @@ use crate::util::create_path;
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
 /// attributes, then generates code that matches on any given error variant.
-pub fn source<'a>(span: Span, variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
+pub fn source<'a>(span: Span2, variants: impl Iterator<Item = &'a Variant>) -> TokenStream2 {
     let from_attr = create_path(span, &["from"]);
 
     // make a new hashmap to store variants' attribute field, if it's even there!
