@@ -13,6 +13,8 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
 
     // make sure we've been given an enum.
     if let Item::Enum(item) = Item::from(input) {
+        let after_span = item.brace_token.span.close();
+
         let name = item.ident;
         let variants = item.variants;
 
@@ -29,15 +31,13 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
         let cause = cause();
 
         // put all those together!
-        let impl_block = quote_spanned! {input_span=>
+        let impl_block = quote_spanned! {after_span=>
             // TODO: check each variant and get info on their `#[error(...)]` attribute.
             #[automatically_derived]
             impl std::error::Error for #name {
                 #source
                 #description
                 #cause
-
-                compile_error!("TODO: Error is not yet implemented.")
             }
 
             #[automatically_derived]
