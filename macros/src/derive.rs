@@ -40,12 +40,12 @@ pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
     // create each impl...
 
     // error impl
-    let source = source(after_span, &variants, name.clone())?; // TODO: check after_span
+    let source = source(after_span, &variants, &name)?; // TODO: check after_span
     let description = description();
     let cause = cause();
 
     // display impl
-    let fmt = fmt(after_span, &variants, name.clone())?;
+    let fmt = fmt(after_span, &variants, &name)?;
 
     let error_path = create_path(input_span, &["std", "error", "Error"]);
     let display_path = create_path(input_span, &["core", "fmt", "Display"]);

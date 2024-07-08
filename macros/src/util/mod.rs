@@ -5,6 +5,8 @@
 use proc_macro2::Span as Span2;
 use syn::{punctuated::Punctuated, Ident, Path, PathSegment};
 
+pub(crate) mod variant;
+
 pub fn create_path(span: Span2, ident_strs: &[&str]) -> Path {
     Path {
         leading_colon: None,

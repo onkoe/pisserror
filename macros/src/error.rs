@@ -2,7 +2,7 @@ use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{punctuated::Punctuated, token::Comma, Ident, Variant};
 
-use crate::util::create_path;
+use crate::util::{create_path, variant::make_match_head};
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
 /// attributes, then generates code that matches on any given error variant.
@@ -28,7 +28,7 @@ enum SomeError {
 pub fn source(
     span: Span2,
     variants: &Punctuated<Variant, Comma>,
-    enum_ident: Ident,
+    enum_name: &Ident,
 ) -> syn::Result<TokenStream2> {
     let from_attr = create_path(span, &["from"]);
 
@@ -61,17 +61,11 @@ pub fn source(
             }
         }
 
-        let identifer = v.ident.clone();
-        let fields = v.fields.clone();
-        if fields.is_empty() {
-            vec.push(quote! {
-                #enum_ident::#identifer => #t,
-            });
-        } else {
-            vec.push(quote! {
-                #enum_ident::#identifer(#fields) => #t,
-            });
-        }
+        let match_head = make_match_head(enum_name, v);
+
+        vec.push(quote! {
+            #match_head => #t,
+        });
     }
 
     Ok(quote! {

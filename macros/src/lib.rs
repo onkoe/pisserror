@@ -10,7 +10,7 @@ use syn::{parse_macro_input, DeriveInput};
 mod derive;
 pub(crate) mod display;
 pub(crate) mod error;
-mod util;
+pub(crate) mod util;
 
 /// Derives `core::error::Error` from special syntax.
 #[proc_macro_derive(Error, attributes(error, from))]

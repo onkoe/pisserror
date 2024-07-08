@@ -2,7 +2,7 @@ use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{punctuated::Punctuated, token::Comma, Ident, Meta, Variant};
 
-use crate::util::create_path;
+use crate::util::{create_path, variant::make_match_head};
 
 // TODO: check each variant and get info on their `#[error(...)]` attribute.
 
@@ -46,7 +46,7 @@ enum MyError {
 pub fn fmt(
     span: Span2,
     variants: &Punctuated<Variant, Comma>,
-    enum_ident: Ident,
+    enum_name: &Ident,
 ) -> syn::Result<TokenStream2> {
     // just an attribute that looks like `#[error(...)]`.
     let error_attr = create_path(span, &["error"]);
@@ -81,10 +81,10 @@ pub fn fmt(
 
                 // TODO: parse attr args correctly!!!
                 has_error_attribute = true;
-                let variant_ident = &v.ident;
+                let match_head = make_match_head(enum_name, v);
                 let tokens = &attr_args.tokens;
                 vec.push(quote! {
-                    #enum_ident::#variant_ident => {f.write_str(format!(#tokens).as_str())},
+                    #match_head => {f.write_str(format!(#tokens).as_str())},
                 });
             }
         }
