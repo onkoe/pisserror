@@ -31,15 +31,23 @@ pub fn source(
         }
 
         let identifer = v.ident.clone();
-        vec.push(quote! {
-            #identifer(#v.fields*) => #t,
-        });
+        let fields = v.fields.clone();
+        if fields.is_empty() {
+            vec.push(quote! {
+                #enum_ident::#identifer => #t,
+            });
+        } else {
+            vec.push(quote! {
+                #enum_ident::#identifer(#fields) => #t,
+            });
+        }
     }
 
-    // TODO: use the vec
     Ok(quote! {
         fn source(&self) -> Option<&(dyn Error + 'static)> {
-            None
+            match *self {
+                #(#vec)*
+            }
         }
     })
 }
