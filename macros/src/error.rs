@@ -1,6 +1,6 @@
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
-use syn::Variant;
+use syn::{punctuated::Punctuated, token::Comma, Ident, Variant};
 
 use crate::util::create_path;
 
@@ -8,23 +8,25 @@ use crate::util::create_path;
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
 /// attributes, then generates code that matches on any given error variant.
-pub fn source<'a>(
+pub fn source(
     span: Span2,
-    variants: impl Iterator<Item = &'a Variant>,
+    variants: &Punctuated<Variant, Comma>,
+    enum_ident: Ident,
 ) -> syn::Result<TokenStream2> {
     let from_attr = create_path(span, &["from"]);
 
-    // make a new hashmap to store variants' attribute field, if it's even there!
+    // store each variant's match arm, if it's even there!
     let mut vec = vec![];
 
     // check for any `from` attributes on variants
     for v in variants {
-        let mut t = None;
+        let mut t = quote! { None };
         for f in &v.fields {
             // if any of a variant's fields have the from attribute...
             if f.attrs.iter().any(|attr| *attr.meta.path() == from_attr) {
                 // ...use that field in the source method impl
-                t = Some(f.ty.clone());
+                let ty = f.ty.clone();
+                t = quote! { Some(#ty) };
             }
         }
 

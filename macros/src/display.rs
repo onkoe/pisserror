@@ -1,14 +1,14 @@
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{Ident, Meta, Variant};
+use syn::{punctuated::Punctuated, token::Comma, Ident, Meta, Variant};
 
 use crate::util::create_path;
 
 // TODO: check each variant and get info on their `#[error(...)]` attribute.
 
-pub fn fmt<'a>(
+pub fn fmt(
     span: Span2,
-    variants: impl Iterator<Item = &'a Variant>,
+    variants: &Punctuated<Variant, Comma>,
     enum_ident: Ident,
 ) -> syn::Result<TokenStream2> {
     // just an attribute that looks like `#[error(...)]`.
@@ -36,7 +36,7 @@ pub fn fmt<'a>(
                 let variant_ident = &v.ident;
                 let tokens = &attr_args.tokens;
                 vec.push(quote! {
-                    &#enum_ident::#variant_ident => {f.write_str(format!(#tokens).as_str())},
+                    #enum_ident::#variant_ident => {f.write_str(format!(#tokens).as_str())},
                 });
             } else {
                 return Err(syn::Error::new_spanned(
@@ -49,7 +49,7 @@ pub fn fmt<'a>(
 
     Ok(quote! {
         fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-            match self {
+            match *self {
                 #(#vec)*
             }
         }
