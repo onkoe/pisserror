@@ -27,11 +27,23 @@ pub(crate) fn fields_with_from_attrs(
         for field in &variant.fields {
             for attr in &field.attrs {
                 if attr.path() == &from_attr {
-                    // look if some other field has it. if so, get pissed
+                    // look if some other field has it. if so, get pissed.
                     if already_found_from_attr {
                         return Err(syn::Error::new_spanned(
                             attr,
                             "You may only have one `#[from]` attribute per variant.",
+                        ));
+                    }
+
+                    // if we have `#[from]`, there can be no other fields on this variant
+                    if variant.fields.len() > 1 {
+                        return Err(syn::Error::new_spanned(
+                            variant,
+                            "A variant containing a field with the `#[from]` \
+                            attribute must have only one field.\n
+                            
+                            Please see: \
+                            https://github.com/onkoe/pisserror/issues/11#issuecomment-2215435824",
                         ));
                     }
 
@@ -49,6 +61,7 @@ pub(crate) fn fields_with_from_attrs(
     // return the list we made!
     Ok(list)
 }
+/// `Some(Err(TokenStream2))` when something is wrong with the user's `#[from]`
 #[cfg(test)]
 mod tests {
     mod field_checking_tests {
