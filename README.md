@@ -1,3 +1,3 @@
-# pisserror
+# `pisserror`
 
-piss on your errors
+A golden replacement for `thiserror`.

@@ -1,9 +1,12 @@
 [package]
 name = "pisserror"
-version = "0.0.0"
+description = "A golden rip-off of thiserror"
+authors = ["Barrett Ray <contact@barretts.club>"]
+version = "0.0.1"
 edition = "2021"
-
-[dependencies]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/onkoe/pisserror"
 
 [workspace]
 members = ["macros"]
