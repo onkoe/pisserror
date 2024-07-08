@@ -20,8 +20,11 @@ pub fn fmt(
     // make sure each variant has the error attribute.
     // then, grab each one for use in the impl
     for v in variants {
+        let mut has_error_attribute = false;
+
         for attr in &v.attrs {
             if attr.meta.path() == &error_attr {
+                has_error_attribute = true;
                 // TODO: maybe respect inherited Display on `#[from]` variants
                 //       where we get Meta::Path instead.
 
@@ -38,12 +41,15 @@ pub fn fmt(
                 vec.push(quote! {
                     #enum_ident::#variant_ident => {f.write_str(format!(#tokens).as_str())},
                 });
-            } else {
-                return Err(syn::Error::new_spanned(
-                    v,
-                    "Each variant must have a corresponding `#[error(...)` attribute.",
-                ));
             }
+        }
+
+        // if we don't have an error attribute, complain
+        if !has_error_attribute {
+            return Err(syn::Error::new_spanned(
+                v,
+                "Each variant must have a corresponding `#[error(...)]` attribute.",
+            ));
         }
     }
 
