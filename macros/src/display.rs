@@ -4,8 +4,6 @@ use syn::{punctuated::Punctuated, token::Comma, Ident, Meta, Variant};
 
 use crate::util::{create_path, variant::make_match_head};
 
-// TODO: check each variant and get info on their `#[error(...)]` attribute.
-
 /**
 To implement `Display`, we need to parse the given error message for each
 variant.
@@ -26,9 +24,8 @@ enum MyError {
 }
 ```
 
-Also, too many should fail:
+Also, you can't have too many of them, either:
 
-```compile_fail
 ```compile_fail
 use macros::Error;
 use std::error::Error;
@@ -40,9 +37,7 @@ enum MyError {
     #[error("second attr")]
     VariantOne,
 }
-```
-
-*/
+``` */
 pub fn fmt(
     span: Span2,
     variants: &Punctuated<Variant, Comma>,
