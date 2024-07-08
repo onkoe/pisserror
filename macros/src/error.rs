@@ -11,27 +11,11 @@ use crate::util::create_path;
 ///
 /// # Attribute Rules
 ///
-/// The `#[from]` and `#[error]` attributes both assume they're only used once
-/// per variant.
+/// The `#[from]` attribute assumes it's only used once per variant.
 ///
 /// As such, the following code shouldn't compile:
 ///
 /** ```compile_fail
-use macros::Error;
-use std::error::Error;
-
-#[derive(Debug, Error)]
-enum SomeError {
-    // you can't have two messages per variant!
-    #[error("hi")]
-    #[error("woah")]
-    TwoAttrsOneField,
-}
-```
-
-And for `#[from]`...
-
-```compile_fail
 use macros::Error;
 use std::error::Error;
 

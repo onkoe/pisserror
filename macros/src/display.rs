@@ -6,6 +6,43 @@ use crate::util::create_path;
 
 // TODO: check each variant and get info on their `#[error(...)]` attribute.
 
+/**
+To implement `Display`, we need to parse the given error message for each
+variant.
+
+However, there needs to be one error attribute per - not more, not less.
+
+I've made some tests below verifying this assumption.
+
+First, having no `#[error]` attribute should fail:
+```compile_fail
+use macros::Error;
+use std::error::Error;
+
+#[derive(Debug, Error)]
+#[allow(unused)]
+enum MyError {
+    VariantOne,
+}
+```
+
+Also, too many should fail:
+
+```compile_fail
+```compile_fail
+use macros::Error;
+use std::error::Error;
+
+#[derive(Debug, Error)]
+#[allow(unused)]
+enum MyError {
+    #[error("first attr")]
+    #[error("second attr")]
+    VariantOne,
+}
+```
+
+*/
 pub fn fmt(
     span: Span2,
     variants: &Punctuated<Variant, Comma>,
@@ -24,7 +61,6 @@ pub fn fmt(
 
         for attr in &v.attrs {
             if attr.meta.path() == &error_attr {
-                has_error_attribute = true;
                 // TODO: maybe respect inherited Display on `#[from]` variants
                 //       where we get Meta::Path instead.
 
@@ -35,7 +71,16 @@ pub fn fmt(
                     return Err(syn::Error::new_spanned(attr, err_msg));
                 };
 
+                // complain if user used multiple error attrs on one variant
+                if has_error_attribute {
+                    return Err(syn::Error::new_spanned(
+                        attr,
+                        "Each variant may only have one `#[error(...)]` attribute.",
+                    ));
+                }
+
                 // TODO: parse attr args correctly!!!
+                has_error_attribute = true;
                 let variant_ident = &v.ident;
                 let tokens = &attr_args.tokens;
                 vec.push(quote! {
