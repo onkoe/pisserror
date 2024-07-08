@@ -22,7 +22,7 @@ use std::error::Error;
 
 #[derive(Debug, Error)]
 enum SomeError {
-    // you can't have two messages!
+    // you can't have two messages per variant!
     #[error("hi")]
     #[error("woah")]
     TwoAttrsOneField,
@@ -37,7 +37,9 @@ use std::error::Error;
 
 #[derive(Debug, Error)]
 enum SomeError {
-    // you can't have
+    // you can't have two `#[from]` attrs on one variant!
+    // note: this could actually be a cool feature if done right
+    #[error("hello")]
     TwoAttrsOneField(#[from] std::io::Error, #[from] std::fmt::Error),
 }
 ``` */
@@ -54,12 +56,26 @@ pub fn source(
     // check for any `from` attributes on variants
     for v in variants {
         let mut t = quote! { None };
+        let mut has_attribute = false;
+
         for f in &v.fields {
             // if any of a variant's fields have the from attribute...
-            if f.attrs.iter().any(|attr| *attr.meta.path() == from_attr) {
-                // ...use that field in the source method impl
-                let ty = f.ty.clone();
-                t = quote! { Some(#ty) };
+            for attribute in &f.attrs {
+                // check if we already have an attribute
+                if *attribute.meta.path() == from_attr {
+                    if has_attribute {
+                        // get pissed off
+                        return Err(syn::Error::new_spanned(
+                            attribute,
+                            "You may only have one `#[from]` attribute per variant.",
+                        ));
+                    }
+
+                    // ...otherwise, use that field in the source method impl
+                    has_attribute = true;
+                    let ty = f.ty.clone();
+                    t = quote! { Some(#ty) };
+                }
             }
         }
 
