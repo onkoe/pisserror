@@ -2,3 +2,6 @@
 /target
 # avoid including lock files for libraries
 **/Cargo.lock
+
+# macos
+**/.DS_Store
