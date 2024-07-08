@@ -1,29 +1,24 @@
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{Meta, Variant};
+use syn::{Ident, Meta, Variant};
 
 use crate::util::create_path;
 
 // TODO: check each variant and get info on their `#[error(...)]` attribute.
 
-pub fn format<'a>(
+pub fn fmt<'a>(
     span: Span2,
     variants: impl Iterator<Item = &'a Variant>,
+    enum_ident: Ident,
 ) -> syn::Result<TokenStream2> {
-    // for v in variants
-    //      for attr in v.attrs
-    //          if attr is #[error(...)]
-    //              add to output
-    //          else
-    //              compile_error!("fuck you")
-
-    // attribute that looks like `#[error(...)]`.
+    // just an attribute that looks like `#[error(...)]`.
     let error_attr = create_path(span, &["error"]);
 
-    // output
+    // all the lines of `match`
     let mut vec = vec![];
 
-    // make sure each variant has the error attr. grab each one for Display
+    // make sure each variant has the error attribute.
+    // then, grab each one for use in the impl
     for v in variants {
         for attr in &v.attrs {
             if attr.meta.path() == &error_attr {
@@ -38,8 +33,10 @@ pub fn format<'a>(
                 };
 
                 // TODO: parse attr args correctly!!!
+                let variant_ident = &v.ident;
+                let tokens = &attr_args.tokens;
                 vec.push(quote! {
-                    #v.ident => {format!(#attr_args)}
+                    &#enum_ident::#variant_ident => {f.write_str(format!(#tokens).as_str())},
                 });
             } else {
                 return Err(syn::Error::new_spanned(
@@ -50,5 +47,11 @@ pub fn format<'a>(
         }
     }
 
-    todo!()
+    Ok(quote! {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+            match self {
+                #(#vec)*
+            }
+        }
+    })
 }

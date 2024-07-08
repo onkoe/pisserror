@@ -7,6 +7,7 @@ use quote::quote_spanned;
 use syn::{spanned::Spanned as _, DeriveInput, Item};
 
 use crate::{
+    display::fmt,
     error::{cause, description, source},
     util::create_path,
 };
@@ -36,10 +37,15 @@ pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
     //
     // HEY! the compiler already does this for us! a nice error message might be preferable, though!
 
-    // assemble the match arms
+    // create each impl...
+
+    // error impl
     let source = source(after_span, variants.iter())?; // TODO: check after_span
     let description = description();
     let cause = cause();
+
+    // display impl
+    let fmt = fmt(after_span, variants.iter(), name.clone())?;
 
     let error_path = create_path(input_span, &["std", "error", "Error"]);
     let display_path = create_path(input_span, &["core", "fmt", "Display"]);
@@ -57,6 +63,7 @@ pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
 
         #[automatically_derived]
         impl #display_path for #name {
+            #fmt
         }
     };
 
