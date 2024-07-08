@@ -1,6 +1,8 @@
 use macros::Error;
+use std::error::Error;
 
 #[derive(Debug, Error)]
+#[allow(unused)]
 enum MyErrorType {
     #[error("1 {}", "am i a genius?")]
     Thing1,
