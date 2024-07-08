@@ -1,3 +1,3 @@
 # pisserror
 
-blazing fast piss
+piss on your errors
