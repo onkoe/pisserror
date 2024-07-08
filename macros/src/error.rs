@@ -8,6 +8,39 @@ use crate::util::create_path;
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
 /// attributes, then generates code that matches on any given error variant.
+///
+/// # Attribute Rules
+///
+/// The `#[from]` and `#[error]` attributes both assume they're only used once
+/// per variant.
+///
+/// As such, the following code shouldn't compile:
+///
+/** ```compile_fail
+use macros::Error;
+use std::error::Error;
+
+#[derive(Debug, Error)]
+enum SomeError {
+    // you can't have two messages!
+    #[error("hi")]
+    #[error("woah")]
+    TwoAttrsOneField,
+}
+```
+
+And for `#[from]`...
+
+```compile_fail
+use macros::Error;
+use std::error::Error;
+
+#[derive(Debug, Error)]
+enum SomeError {
+    // you can't have
+    TwoAttrsOneField(#[from] std::io::Error, #[from] std::fmt::Error),
+}
+``` */
 pub fn source(
     span: Span2,
     variants: &Punctuated<Variant, Comma>,
