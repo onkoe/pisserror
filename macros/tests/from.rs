@@ -5,7 +5,7 @@ use std::error::Error;
 #[derive(Debug, Error)]
 enum SomeTupleEnumError {
     #[error("hello tuple enum")]
-    OneAttrOneField(#[from] std::io::Error),
+    FromIo(#[from] std::io::Error),
 }
 
 #[derive(Debug, Error)]
@@ -15,4 +15,12 @@ enum SomeStructEnumError {
         #[from]
         from: std::io::Error,
     },
+}
+
+#[test]
+fn t() {
+    let ioerr = std::io::Error::from_raw_os_error(22);
+    let _some_struct_err = SomeStructEnumError::from(ioerr);
+
+    // TODO: try formatting the error
 }

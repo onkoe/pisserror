@@ -3,31 +3,30 @@
 //! Implements the `From` trait for the user's type.
 
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
-use syn::{punctuated::Punctuated, token::Comma, Field, Ident, Type, Variant};
+use quote::{quote, quote_spanned};
+use syn::{punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, Type, Variant};
 
 use crate::util::create_path;
 
-/// Returns a `Vec<(&Variant, Option<&Type>)>`, showing which variants have
-/// `#[from]`, attributes, and which errors those variants implement.
+/// Returns a list of the variants who have `#[from]` attributes, alongside the
+/// errors they implement.
 ///
 /// However, passes back an `Err` when the attribute's usages are wrong.
 pub(crate) fn fields_with_from_attrs(
     span: Span2,
     variants: &Punctuated<Variant, Comma>,
-) -> syn::Result<Vec<(&Variant, Option<&Type>)>> {
+) -> syn::Result<Vec<(&Variant, &Type)>> {
     let from_attr: syn::Path = create_path(span, &["from"]);
     let mut list = Vec::with_capacity(variants.len());
 
     for variant in variants {
-        // each variant can have one `#[from]` field
         let mut already_found_from_attr = false; // whether or not we found one
-        let mut from_type = None; // the type if we did
 
         // look over each variant's field's attrs for the `#[from]` annotation!
         for field in &variant.fields {
             for attr in &field.attrs {
                 if attr.path() == &from_attr {
-                    // look if some other field has it. if so, get pissed.
+                    // each variant can have one `#[from]` field
                     if already_found_from_attr {
                         return Err(syn::Error::new_spanned(
                             attr,
@@ -49,19 +48,67 @@ pub(crate) fn fields_with_from_attrs(
 
                     // otherwise, remember the From<Type> we were given
                     already_found_from_attr = true;
-                    from_type = Some(&field.ty);
+                    // add variant to vec alongside its `From<Type>`
+                    list.push((variant, &field.ty));
                 }
             }
         }
-
-        // add variant to vec alongside its `From<Type>`
-        list.push((variant, from_type));
     }
 
-    // return the list we made!
+    // return the list we made
     Ok(list)
 }
-/// `Some(Err(TokenStream2))` when something is wrong with the user's `#[from]`
+
+/// Gets the identifier for a `#[from]` variant's field.
+///
+/// ONLY PASS THIS FUNCTION A VARIANT WHOSE FIELD HAS A FROM ATTR.
+/// TODO: make this take some custom enum type:
+///       - NormalVariant(Variant)
+///       - FromVariant(Variant, Type)
+pub(crate) fn from_variants_identifer(variant: &Variant) -> Ident {
+    match &variant.fields {
+        syn::Fields::Unit | syn::Fields::Unnamed(_) => {
+            unreachable!("we should never get a `#[from]` variant with no/unnamed fields")
+        }
+        syn::Fields::Named(n) => n
+            .named
+            .first()
+            .expect("a variant with a field will always have a first field")
+            .ident
+            .clone()
+            .expect("a named field will always be named"),
+    }
+}
+
+/// Creates a `From<other::Error> for UserError` impl for the given variant
+/// and field.
+pub(crate) fn from(enum_name: &Ident, variant: &Variant, ty: &Type) -> TokenStream2 {
+    // TODO: HEY! DO NOT USE `fields_with_from_attrs` IN HERE! MAKE `derive.rs`
+    //       CALL + PASS IT IN! SAME WITH `error::source()`!!!
+
+    // grab the necessary names
+    let variant_name = &variant.ident;
+
+    // let's decide which style to use during construction
+    let style = match &variant.fields {
+        syn::Fields::Named(n) => {
+            let field_name = from_variants_identifer(variant);
+            quote_spanned!(n.span()=> #enum_name::#variant_name {#field_name: value})
+        }
+        syn::Fields::Unnamed(un) => quote_spanned!(un.span()=> #enum_name::#variant_name(value)),
+        syn::Fields::Unit => unreachable!(),
+    };
+
+    quote! {
+        #[automatically_derived]
+        impl core::convert::From<#ty> for #enum_name {
+            fn from(value: #ty) -> #enum_name {
+                #style
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     mod field_checking_tests {

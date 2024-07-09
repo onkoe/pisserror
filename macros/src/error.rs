@@ -1,8 +1,11 @@
-use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
+use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{punctuated::Punctuated, token::Comma, Ident, Variant};
 
-use crate::util::{create_path, variant::make_match_head};
+use crate::{
+    from::from_variants_identifer,
+    util::variant::{make_match_head, make_variant_path},
+};
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
 /// attributes, then generates code that matches on any given error variant.
@@ -26,52 +29,51 @@ enum SomeError {
 }
 ``` */
 pub fn source(
-    span: Span2,
     variants: &Punctuated<Variant, Comma>,
+    variant_froms: &[&Variant],
     enum_name: &Ident,
 ) -> syn::Result<TokenStream2> {
-    let from_attr = create_path(span, &["from"]);
-
     // store each variant's match arm, if it's even there!
-    let mut vec = vec![];
+    let list = variants.iter().map(|v| {
+        let is_from = variant_froms.contains(&v);
 
-    // check for any `from` attributes on variants
-    for v in variants {
-        let mut t = quote! { None };
-        let mut has_attribute = false;
+        match is_from {
+            true => {
+                // do some parsing nonsense
+                let match_head = make_variant_path(enum_name, &v.ident);
 
-        for f in &v.fields {
-            // if any of a variant's fields have the from attribute...
-            for attribute in &f.attrs {
-                // check if we already have an attribute
-                if *attribute.meta.path() == from_attr {
-                    if has_attribute {
-                        // get pissed off
-                        return Err(syn::Error::new_spanned(
-                            attribute,
-                            "You may only have one `#[from]` attribute per variant.",
-                        ));
+                match &v.fields {
+                    syn::Fields::Named(_) => {
+                        // get the identifier for the contained error
+                        let container_err_ident = from_variants_identifer(v);
+
+                        quote! {
+                            #match_head {ref #container_err_ident} => Some(#container_err_ident)
+                        }
                     }
+                    syn::Fields::Unnamed(_) => quote! {
+                        #match_head(ref e) => Some(e)
+                    },
+                    syn::Fields::Unit => quote! {
+                        #match_head => None
+                    },
+                }
+            }
+            false => {
+                // smooth sailing, baby!
+                let match_head = make_match_head(enum_name, v);
 
-                    // ...otherwise, use that field in the source method impl
-                    has_attribute = true;
-                    let ty = f.ty.clone();
-                    t = quote! { Some(#ty) };
+                quote! {
+                    #match_head => None
                 }
             }
         }
-
-        let match_head = make_match_head(enum_name, v);
-
-        vec.push(quote! {
-            #match_head => #t,
-        });
-    }
+    });
 
     Ok(quote! {
         fn source(&self) -> Option<&(dyn Error + 'static)> {
             match *self {
-                #(#vec)*
+                #(#list),*
             }
         }
     })

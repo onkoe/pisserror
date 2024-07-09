@@ -4,11 +4,12 @@
 
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote_spanned;
-use syn::{spanned::Spanned as _, DeriveInput, Item};
+use syn::{spanned::Spanned as _, DeriveInput, Item, Variant};
 
 use crate::{
     display::fmt,
     error::{cause, description, source},
+    from::{fields_with_from_attrs, from},
     util::create_path,
 };
 
@@ -37,14 +38,25 @@ pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
     //
     // HEY! the compiler already does this for us! a nice error message might be preferable, though!
 
-    // create each impl...
+    // check `From` impl eligibility
+    let variants_with_froms = fields_with_from_attrs(input_span, &variants)?;
 
-    // error impl
-    let source = source(after_span, &variants, &name)?; // TODO: check after_span
+    // for each variant, make them a from block
+    let froms = variants_with_froms.iter().map(|(v, t)| from(&name, v, t));
+
+    // make all Error impl fns...
+    let source = source(
+        &variants,
+        &variants_with_froms
+            .iter()
+            .map(|(v, _)| *v)
+            .collect::<Vec<&Variant>>(),
+        &name,
+    )?; // TODO: check after_span
     let description = description();
     let cause = cause();
 
-    // display impl
+    // ...and all Display impl fns
     let fmt = fmt(after_span, &variants, &name)?;
 
     let error_path = create_path(input_span, &["std", "error", "Error"]);
@@ -63,6 +75,8 @@ pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
         impl #display_path for #name {
             #fmt
         }
+
+        #(#froms)*
     };
 
     Ok(impl_block)
