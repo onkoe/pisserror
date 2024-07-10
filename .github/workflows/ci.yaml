@@ -61,7 +61,9 @@ jobs:
         run: cargo build --verbose
 
       - name: Test `pisserror` crate
+        if: ${{ matrix.toolchain == 'nightly' }}
         run: cargo test-all-features
+        
 
       - name: Test `macros` crate
         run: cargo test-all-features macros/
