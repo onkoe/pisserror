@@ -112,7 +112,7 @@ pub(crate) fn from(enum_name: &Ident, variant: &Variant, ty: &Type) -> TokenStre
 #[cfg(test)]
 mod tests {
     mod field_checking_tests {
-        use crate::from::fields_with_from_attrs;
+        use crate::traits::from::fields_with_from_attrs;
         use syn::{parse_quote, spanned::Spanned, ItemEnum};
 
         #[test]

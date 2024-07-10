@@ -7,11 +7,8 @@
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 
-mod derive;
-pub(crate) mod display;
-pub(crate) mod error;
-pub(crate) mod from;
-pub(crate) mod util;
+mod traits;
+mod util;
 
 /// Derives `core::error::Error` from special syntax.
 #[proc_macro_derive(Error, attributes(error, from))]
@@ -19,7 +16,7 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
     // FIXME: all derives must be in the root module for some reason...
     let input = parse_macro_input!(input as DeriveInput);
 
-    match derive::derive_error(input) {
+    match traits::derive_error(input) {
         Ok(k) => k,
         Err(e) => e.into_compile_error(),
     }

@@ -2,10 +2,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{punctuated::Punctuated, token::Comma, Ident, Variant};
 
-use crate::{
-    from::from_variants_identifer,
-    util::variant::{make_match_head, make_variant_path},
-};
+use crate::{traits::from, util};
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
 /// attributes, then generates code that matches on any given error variant.
@@ -40,12 +37,12 @@ pub fn source(
         match is_from {
             true => {
                 // do some parsing nonsense
-                let match_head = make_variant_path(enum_name, &v.ident);
+                let match_head = util::variant::make_variant_path(enum_name, &v.ident);
 
                 match &v.fields {
                     syn::Fields::Named(_) => {
                         // get the identifier for the contained error
-                        let container_err_ident = from_variants_identifer(v);
+                        let container_err_ident = from::from_variants_identifer(v);
 
                         quote! {
                             #match_head {ref #container_err_ident} => Some(#container_err_ident)
@@ -61,7 +58,7 @@ pub fn source(
             }
             false => {
                 // smooth sailing, baby!
-                let match_head = make_match_head(enum_name, v);
+                let match_head = util::variant::make_match_head(enum_name, v);
 
                 quote! {
                     #match_head => None

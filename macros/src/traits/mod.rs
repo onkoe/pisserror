@@ -6,12 +6,11 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote_spanned;
 use syn::{spanned::Spanned as _, DeriveInput, Item, Variant};
 
-use crate::{
-    display::fmt,
-    error::{cause, description, source},
-    from::{fields_with_from_attrs, from},
-    util::create_path,
-};
+use crate::util;
+
+mod display;
+mod error;
+mod from;
 
 pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
     let input_span = input.span();
@@ -39,13 +38,15 @@ pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
     // HEY! the compiler already does this for us! a nice error message might be preferable, though!
 
     // check `From` impl eligibility
-    let variants_with_froms = fields_with_from_attrs(input_span, &variants)?;
+    let variants_with_froms = from::fields_with_from_attrs(input_span, &variants)?;
 
     // for each variant, make them a from block
-    let froms = variants_with_froms.iter().map(|(v, t)| from(&name, v, t));
+    let froms = variants_with_froms
+        .iter()
+        .map(|(v, t)| from::from(&name, v, t));
 
     // make all Error impl fns...
-    let source = source(
+    let source = error::source(
         &variants,
         &variants_with_froms
             .iter()
@@ -53,14 +54,14 @@ pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
             .collect::<Vec<&Variant>>(),
         &name,
     )?; // TODO: check after_span
-    let description = description();
-    let cause = cause();
+    let description = error::description();
+    let cause = error::cause();
 
     // ...and all Display impl fns
-    let fmt = fmt(after_span, &variants, &name)?;
+    let fmt = display::fmt(after_span, &variants, &name)?;
 
-    let error_path = create_path(input_span, &["std", "error", "Error"]);
-    let display_path = create_path(input_span, &["core", "fmt", "Display"]);
+    let error_path = util::create_path(input_span, &["std", "error", "Error"]);
+    let display_path = util::create_path(input_span, &["core", "fmt", "Display"]);
 
     // put all those together!
     let impl_block = quote_spanned! {after_span=>
