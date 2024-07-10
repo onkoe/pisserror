@@ -12,7 +12,7 @@ use crate::util::create_path;
 /// errors they implement.
 ///
 /// However, passes back an `Err` when the attribute's usages are wrong.
-pub(crate) fn fields_with_from_attrs(
+pub fn fields_with_from_attrs(
     span: Span2,
     variants: &Punctuated<Variant, Comma>,
 ) -> syn::Result<Vec<(&Variant, &Type)>> {
@@ -65,7 +65,7 @@ pub(crate) fn fields_with_from_attrs(
 /// TODO: make this take some custom enum type:
 ///       - NormalVariant(Variant)
 ///       - FromVariant(Variant, Type)
-pub(crate) fn from_variants_identifer(variant: &Variant) -> Ident {
+pub fn from_variants_identifer(variant: &Variant) -> Ident {
     match &variant.fields {
         syn::Fields::Unit | syn::Fields::Unnamed(_) => {
             unreachable!("we should never get a `#[from]` variant with no/unnamed fields")
@@ -82,7 +82,7 @@ pub(crate) fn from_variants_identifer(variant: &Variant) -> Ident {
 
 /// Creates a `From<other::Error> for UserError` impl for the given variant
 /// and field.
-pub(crate) fn from(enum_name: &Ident, variant: &Variant, ty: &Type) -> TokenStream2 {
+pub fn from(enum_name: &Ident, variant: &Variant, ty: &Type) -> TokenStream2 {
     // TODO: HEY! DO NOT USE `fields_with_from_attrs` IN HERE! MAKE `derive.rs`
     //       CALL + PASS IT IN! SAME WITH `error::source()`!!!
 

@@ -9,7 +9,7 @@ use syn::{Ident, Variant};
 /// Creates the variant without any placeholders or brackets/parentheses.
 ///
 /// This looks like: `EnumName::VariantName`.
-pub(crate) fn make_variant_path(enum_name: &Ident, variant_name: &Ident) -> TokenStream2 {
+pub fn make_variant_path(enum_name: &Ident, variant_name: &Ident) -> TokenStream2 {
     quote! {
         #enum_name::#variant_name
     }
@@ -17,7 +17,7 @@ pub(crate) fn make_variant_path(enum_name: &Ident, variant_name: &Ident) -> Toke
 
 /// Creates the `match` head (path selector with fields) for a variant of
 /// an enum.
-pub(crate) fn make_match_head(enum_name: &Ident, variant: &Variant) -> TokenStream2 {
+pub fn make_match_head(enum_name: &Ident, variant: &Variant) -> TokenStream2 {
     let variant_name = &variant.ident;
     let variant_path = make_variant_path(enum_name, variant_name);
 
@@ -37,7 +37,7 @@ pub(crate) fn make_match_head(enum_name: &Ident, variant: &Variant) -> TokenStre
 }
 
 /// Creates a `match` head with named fields for matching.
-pub(crate) fn make_named_match_head(enum_name: &Ident, variant: &Variant) -> TokenStream2 {
+pub fn make_named_match_head(enum_name: &Ident, variant: &Variant) -> TokenStream2 {
     let variant_name = &variant.ident;
     let variant_path = make_variant_path(enum_name, variant_name);
 
