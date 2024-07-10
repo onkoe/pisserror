@@ -2,7 +2,7 @@ use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{punctuated::Punctuated, token::Comma, Ident, Meta, Variant};
 
-use crate::util::{create_path, variant::make_match_head};
+use crate::util::{create_path, variant};
 
 /**
 To implement `Display`, we need to parse the given error message for each
@@ -87,7 +87,7 @@ pub fn fmt(
 
                 // TODO: parse attr args correctly!!!
                 has_error_attribute = true;
-                let match_head = make_match_head(enum_name, v);
+                let match_head = variant::make_named_match_head(enum_name, v);
                 let tokens = &attr_args.tokens;
                 vec.push(quote! {
                     #match_head => {f.write_str(format!(#tokens).as_str())},
@@ -104,9 +104,15 @@ pub fn fmt(
         }
     }
 
+    // if there are no variants, add a catch-all arm.
+    // (this is because of the reference match rule)
+    if vec.is_empty() {
+        vec.push(quote! { _ => Ok(()), });
+    }
+
     Ok(quote! {
         fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-            match *self {
+            match self {
                 #(#vec)*
             }
         }
