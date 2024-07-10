@@ -1,3 +1,7 @@
+//! # Display
+//!
+//! Implements `Display` for the user's error type.
+
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{punctuated::Punctuated, token::Comma, Ident, Meta, Variant};

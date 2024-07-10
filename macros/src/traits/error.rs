@@ -1,3 +1,7 @@
+//! # Error
+//!
+//! Implements the `Error` trait for the user's error type.
+
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{punctuated::Punctuated, token::Comma, Ident, Variant};
@@ -31,7 +35,7 @@ pub fn source(
     enum_name: &Ident,
 ) -> syn::Result<TokenStream2> {
     // store each variant's match arm, if it's even there!
-    let list = variants.iter().map(|v| {
+    let match_arms = variants.iter().map(|v| {
         let is_from = variant_froms.contains(&v);
 
         match is_from {
@@ -70,7 +74,7 @@ pub fn source(
     Ok(quote! {
         fn source(&self) -> Option<&(dyn Error + 'static)> {
             match *self {
-                #(#list),*
+                #(#match_arms),*
             }
         }
     })

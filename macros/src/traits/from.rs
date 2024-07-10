@@ -1,6 +1,6 @@
 //! # From
 //!
-//! Implements the `From` trait for the user's type.
+//! Implements the `From` trait for the user's error type.
 
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::{quote, quote_spanned};
