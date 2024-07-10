@@ -61,9 +61,11 @@ pub fn fmt(
 
                 // complain if user gave didn't give an error message
                 let Meta::List(ref attr_args) = attr.meta else {
-                    let err_msg = "All variants must be given something to print, as\
-                        the trait is defined as: `Error: Debug + Display`.";
-                    return Err(syn::Error::new_spanned(attr, err_msg));
+                    return Err(syn::Error::new_spanned(
+                        attr,
+                        "All variants must be given \
+                        something to print, as the trait is defined as: `Error: Debug + Display`.",
+                    ));
                 };
 
                 // complain if user used multiple error attrs on one variant
@@ -71,6 +73,15 @@ pub fn fmt(
                     return Err(syn::Error::new_spanned(
                         attr,
                         "Each variant may only have one `#[error(...)]` attribute.",
+                    ));
+                }
+
+                // make sure the attribute has something inside of it
+                // TODO: when a `#[from]` attr is present, don't check for this.
+                if attr_args.tokens.is_empty() {
+                    return Err(syn::Error::new_spanned(
+                        attr_args,
+                        "An `#[error(...)]` attribute must contain a value.",
                     ));
                 }
 
