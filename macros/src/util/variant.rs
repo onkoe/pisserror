@@ -15,7 +15,7 @@ pub(crate) fn make_variant_path(enum_name: &Ident, variant_name: &Ident) -> Toke
     }
 }
 
-/// Creates the `match` "head" (path selector with fields) for each variant of
+/// Creates the `match` head (path selector with fields) for a variant of
 /// an enum.
 pub(crate) fn make_match_head(enum_name: &Ident, variant: &Variant) -> TokenStream2 {
     let variant_name = &variant.ident;
@@ -33,6 +33,40 @@ pub(crate) fn make_match_head(enum_name: &Ident, variant: &Variant) -> TokenStre
             quote! {#variant_path(#(#mapped)*)} // make a giant "Type::Variant(_, _, _, ...)"
         }
         syn::Fields::Unit => quote! {#variant_path},
+    }
+}
+
+/// Creates a `match` head with named fields for matching.
+pub(crate) fn make_named_match_head(enum_name: &Ident, variant: &Variant) -> TokenStream2 {
+    let variant_name = &variant.ident;
+    let variant_path = make_variant_path(enum_name, variant_name);
+
+    match &variant.fields {
+        syn::Fields::Named(n) => {
+            // do stuff
+            let list = n.named.iter().map(|field| {
+                let name = field.ident.clone().expect("named field should have a name");
+                quote!(ref #name)
+            });
+
+            quote! {
+                #variant_path{#(#list), *}
+            }
+        }
+        syn::Fields::Unnamed(un) => {
+            let field_range = (0..un.unnamed.len()).map(|i| {
+                let ident = quote::format_ident!("_{}", i);
+                quote!(ref #ident)
+            });
+
+            // FIXME: users currently have to do `_0` which is... bad
+            quote! {
+                &#variant_path(#(#field_range), *)
+            }
+        }
+        syn::Fields::Unit => {
+            quote! {#variant_path}
+        }
     }
 }
 
