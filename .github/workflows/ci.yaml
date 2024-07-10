@@ -55,15 +55,14 @@ jobs:
           tool: cargo-deny,cargo-all-features,cargo-semver-checks
 
       - name: Check semantic versioning adherence # note: this should always work. it's got one line of code...
+        if: ${{ matrix.toolchain != 'nightly' }}
         run: cargo semver-checks
 
       - name: Build
         run: cargo build --verbose
 
       - name: Test `pisserror` crate
-        if: ${{ matrix.toolchain != 'nightly' }}
         run: cargo test-all-features
-        
 
       - name: Test `macros` crate
         run: cargo test-all-features macros/
