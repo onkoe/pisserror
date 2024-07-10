@@ -8,5 +8,8 @@ readme = "README.md"
 license = "MIT"
 repository = "https://github.com/onkoe/pisserror"
 
+[dependencies.macros]
+path = "./macros"
+
 [workspace]
 members = ["macros"]
