@@ -215,3 +215,105 @@ pub struct WrappedVariant {
     pub from_attribute: Option<FromAttribute>,
     pub error_attribute: ErrorAttribute,
 }
+
+impl WrappedVariant {
+    /// Creates the path for this variant given the enum identifer.
+    ///
+    /// Paths look like: `EnumName::Variant`, with no extras.
+    pub fn variant_path(&self, enum_ident: Ident) -> Path {
+        Path {
+            leading_colon: None,
+            segments: {
+                let mut p = Punctuated::new();
+                p.push(PathSegment::from(enum_ident));
+                p.push(PathSegment::from(self.ident.clone()));
+                p
+            },
+        }
+    }
+
+    /// Makes the head of a match arm. That is: `ThisPart(..) => { ... }`
+    pub fn match_head(&self, enum_ident: Ident) -> TokenStream2 {
+        let variant_path = self.variant_path(enum_ident);
+
+        match &self.fields {
+            WrappedFields::Named(_) => quote! {#variant_path{..}},
+            WrappedFields::Unnamed(_) => quote! {#variant_path(..)},
+            WrappedFields::Unit => quote! {#variant_path},
+        }
+    }
+
+    /// A match head that's filled with identifiers. For example:
+    /// `SomeEnum::SomeVariant::(_0, _1, _2)`
+    pub fn filled_match_head(&self, enum_ident: Ident) -> TokenStream2 {
+        let variant_path = self.variant_path(enum_ident);
+
+        match &self.fields {
+            WrappedFields::Named(n) => {
+                let list = n.iter().map(|field| {
+                    let name = match field {
+                        WrappedField::Typical(info) | WrappedField::FromAttribute(info) => {
+                            &info.ident
+                        }
+                    };
+                    quote!(ref #name)
+                });
+
+                quote! {
+                    #variant_path{#(#list), *}
+                }
+            }
+
+            WrappedFields::Unnamed(un) => {
+                let field_range = (0..un.len()).map(|i| {
+                    let ident = quote::format_ident!("_{}", i);
+                    quote!(ref #ident)
+                });
+
+                // FIXME(#14): users currently have to do `_0` which is... bad
+                quote! {
+                    &#variant_path(#(#field_range), *)
+                }
+            }
+
+            WrappedFields::Unit => quote! {#variant_path},
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::parse_enum::UserEnum;
+
+    #[test]
+    fn struct_like_one_field() {
+        use quote::quote;
+        use syn::{parse_quote, Item};
+
+        let sauce: Item = parse_quote! {
+            enum FartsEnum {
+                MyVariant {
+                    expected: i32,
+                    got: i32,
+                }
+            }
+        };
+
+        let Item::Enum(its_an_enum) = sauce else {
+            panic!("fuck");
+        };
+
+        let user_enum = UserEnum::new(its_an_enum.into()).unwrap();
+        let v = user_enum.variants.first().unwrap();
+
+        let enum_ident = user_enum.ident();
+        let variant_ident = v.ident.clone();
+
+        let result = v.match_head(enum_ident.clone());
+
+        assert_eq!(
+            result.to_string(),
+            quote!(#enum_ident::#variant_ident{..}).to_string()
+        );
+    }
+}
