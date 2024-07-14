@@ -38,13 +38,10 @@ impl<T: FieldBuildingStep> WrappedFieldBuilder<T> {
         let span = field.span();
 
         let Field {
-            ident: name,
-            ty,
-            attrs,
-            ..
+            ident, ty, attrs, ..
         } = field;
 
-        (WrappedFieldInfo { name, ty, span }, attrs)
+        (WrappedFieldInfo { ident, ty, span }, attrs)
     }
 
     pub fn err_too_many_from_attributes(field_span: &Span) -> syn::Error {
@@ -96,7 +93,7 @@ impl WrappedFieldBuilder<CreationStep> {
 /// Some information about a field.
 #[derive(Clone)]
 pub struct WrappedFieldInfo {
-    pub name: Option<Ident>,
+    pub ident: Option<Ident>,
     pub ty: Type,
     pub span: Span,
 }
