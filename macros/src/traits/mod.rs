@@ -1,6 +1,7 @@
-//! # Derive
+//! # Traits
 //!
-//! Contains the `#[derive(Error)]` part of pisserror.
+//! Contains the `#[derive(Error)]` part of pisserror. This module holds and
+//! uses the implementation for each trait.
 
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote_spanned;

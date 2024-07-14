@@ -1,6 +1,6 @@
 //! # Display
 //!
-//! Implements `Display` for the user's error type.
+//! Implements the `Display` trait for the user's error type.
 
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;

@@ -24,7 +24,6 @@ use std::error::Error;
 #[derive(Debug, Error)]
 enum SomeError {
     // you can't have two `#[from]` attrs on one variant!
-    // note: this could actually be a cool feature if done right
     #[error("hello")]
     TwoAttrsOneField(#[from] std::io::Error, #[from] std::fmt::Error),
 }
