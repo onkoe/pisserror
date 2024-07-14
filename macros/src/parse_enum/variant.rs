@@ -1,9 +1,13 @@
-use proc_macro2::Span;
-use syn::{spanned::Spanned as _, Attribute, Ident, Meta, Variant};
+use proc_macro2::{Span, TokenStream as TokenStream2};
+use quote::quote;
+use syn::{
+    punctuated::Punctuated, spanned::Spanned as _, Attribute, Ident, Meta, Path, PathSegment,
+    Variant,
+};
 
 use super::{
     attr::{ErrorAttribute, FromAttribute},
-    field::{WrappedField, WrappedFieldBuilder},
+    field::{self, FieldsType, WrappedField, WrappedFieldBuilder, WrappedFields},
 };
 
 /// A method to build a `WrappedVariant`.
@@ -36,7 +40,7 @@ struct FromAttributeCheck {
     // parts of the Variant we were using
     ident: Ident,
     span: Span,
-    fields: Option<Vec<WrappedField>>,
+    fields: WrappedFields,
     unparsed_attrs: Vec<Attribute>,
 }
 
@@ -50,6 +54,12 @@ impl FromAttributeCheck {
             ident: vident,
             ..
         } = variant;
+
+        let fields_type = match &vfields {
+            syn::Fields::Named(_) => field::FieldsType::Named,
+            syn::Fields::Unnamed(_) => field::FieldsType::Unnamed,
+            syn::Fields::Unit => field::FieldsType::Unit,
+        };
 
         // handles the attribute count check internally
         let fields = vfields
@@ -71,15 +81,16 @@ impl FromAttributeCheck {
             }
         }
 
-        let fields = match fields.is_empty() {
-            true => None,
-            false => Some(fields),
+        let wrapped_fields = match fields_type {
+            FieldsType::Named => WrappedFields::Named(fields),
+            FieldsType::Unnamed => WrappedFields::Unnamed(fields),
+            FieldsType::Unit => WrappedFields::Unit,
         };
 
         Ok(Self {
             ident: vident,
             from_attribute: from,
-            fields,
+            fields: wrapped_fields,
             span,
             unparsed_attrs: vattrs,
         })
@@ -107,7 +118,7 @@ struct ErrorAttributeCheck {
     /// not all variants use a `#[from]` attr
     ident: Ident,
     span: Span,
-    fields: Option<Vec<WrappedField>>,
+    fields: WrappedFields,
     from_attribute: Option<FromAttribute>,
     error_attribute: ErrorAttribute,
 }
@@ -200,7 +211,7 @@ impl ErrorAttributeCheck {
 pub struct WrappedVariant {
     ident: Ident,
     span: Span,
-    fields: Option<Vec<WrappedField>>,
+    fields: WrappedFields,
     from_attribute: Option<FromAttribute>,
     error_attribute: ErrorAttribute,
 }

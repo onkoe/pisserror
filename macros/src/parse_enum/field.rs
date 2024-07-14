@@ -1,11 +1,23 @@
 use std::marker::PhantomData;
 
-use proc_macro2::{Span, TokenStream};
-use syn::{
-    spanned::Spanned as _, Attribute, DeriveInput, Field, Fields, Ident, Item, Meta, Type, Variant,
-};
+use proc_macro2::Span;
+use syn::{spanned::Spanned as _, Attribute, Field, Ident, Type};
 
 use crate::util;
+
+/// Something like `syn::Fields`, but all the fields have been checked.
+pub enum WrappedFields {
+    Named(Vec<WrappedField>),
+    Unnamed(Vec<WrappedField>),
+    Unit,
+}
+
+/// `syn::Fields`, minus the fields. This is here to avoid some nasty logic.
+pub enum FieldsType {
+    Named,
+    Unnamed,
+    Unit,
+}
 
 pub trait FieldBuildingStep {}
 
