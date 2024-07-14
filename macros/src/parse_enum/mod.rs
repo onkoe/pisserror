@@ -9,6 +9,7 @@ mod variant;
 pub struct UserEnum {
     ident: Ident,
     span: Span,
+    after_span: Span,
     variants: Vec<WrappedVariant>,
 }
 
@@ -16,10 +17,11 @@ impl UserEnum {
     /// Attempts to parse the user's given enum into its required components.
     pub fn new(input: DeriveInput) -> syn::Result<Self> {
         // check if we've been given an enum
-        let (span, ident, variants) = match Item::from(input) {
+        let (span, after_span, ident, variants) = match Item::from(input) {
             #[rustfmt::skip]
             Item::Enum(item) => {(
                     item.span(),
+                    item.brace_token.span.close(),
                     item.ident,
                     item.variants // check each variant
                         .into_iter()
@@ -34,6 +36,7 @@ impl UserEnum {
         Ok(UserEnum {
             ident,
             span,
+            after_span,
             variants,
         })
     }
