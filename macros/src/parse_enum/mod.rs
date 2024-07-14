@@ -41,6 +41,26 @@ impl UserEnum {
         })
     }
 
+    /// The given enum's identifier (name).
+    pub fn ident(&self) -> Ident {
+        self.ident.clone()
+    }
+
+    /// The source region of the given enum.
+    pub fn span(&self) -> Span {
+        self.span
+    }
+
+    /// A span right outside of the enum's definition.
+    pub fn after_span(&self) -> Span {
+        self.after_span
+    }
+
+    /// The available variants on the given enum.
+    pub fn variants(&self) -> &Vec<WrappedVariant> {
+        &self.variants
+    }
+
     fn err_given_non_enum(item: Item) -> syn::Error {
         syn::Error::new_spanned(
             item,
