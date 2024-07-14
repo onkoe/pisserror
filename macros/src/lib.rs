@@ -18,10 +18,15 @@ pub fn derive_error(input: TokenStream) -> TokenStream {
     // FIXME: all derives must be in the root module for some reason...
     let input = parse_macro_input!(input as DeriveInput);
 
-    let user_enum = UserEnum::new(input);
+    let user_enum = match UserEnum::new(input) {
+        Ok(ue) => ue,
+        Err(e) => {
+            return e.into_compile_error().into();
+        }
+    };
 
-    match traits::derive_error(input) {
-        Ok(k) => k,
+    match traits::derive_error(user_enum) {
+        Ok(ts) => ts,
         Err(e) => e.into_compile_error(),
     }
     .into()
