@@ -209,9 +209,9 @@ impl ErrorAttributeCheck {
 }
 
 pub struct WrappedVariant {
-    ident: Ident,
-    span: Span,
-    fields: WrappedFields,
-    from_attribute: Option<FromAttribute>,
-    error_attribute: ErrorAttribute,
+    pub ident: Ident,
+    pub span: Span,
+    pub fields: WrappedFields,
+    pub from_attribute: Option<FromAttribute>,
+    pub error_attribute: ErrorAttribute,
 }
