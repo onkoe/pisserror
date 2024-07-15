@@ -62,6 +62,7 @@ mod tests {
             // make the enum
             let sauce: ItemEnum = parse_quote! {
                 enum MyError {
+                    #[error("some variant? uh oh")]
                     // you may not have multiple from attributes, so this should fail
                     SomeVariant(#[from] std::io::Error, #[from] std::collection::TryReserveError)
                 }
@@ -77,8 +78,11 @@ mod tests {
             let sauce: ItemEnum = parse_quote! {
                 // these variants all have one from - it should work great!
                 enum MyError {
+                    #[error("one")]
                     VariantOne(#[from] std::io::Error),
+                    #[error("two")]
                     VariantTwo(#[from] std::collection::TryReserveError),
+                    #[error("three")]
                     VariantThree {
                         #[from]
                         some_field: std::array::TryFromSliceError,
@@ -97,6 +101,7 @@ mod tests {
             // make the enum
             let sauce: ItemEnum = parse_quote! {
                 enum MyError {
+                    #[error("struct-like variant")]
                     // if a variant's field has a `#[from]` attr, it MUST be the only field
                     StructLikeVariant {
                         #[from]

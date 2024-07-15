@@ -292,6 +292,7 @@ mod tests {
 
         let sauce: Item = parse_quote! {
             enum FartsEnum {
+                #[error("mfw the test needs a message 😧")]
                 MyVariant {
                     expected: i32,
                     got: i32,
