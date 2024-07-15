@@ -101,6 +101,12 @@ pub struct WrappedFieldInfo {
     pub span: Span,
 }
 
+impl PartialEq for WrappedFieldInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.ident == other.ident && self.ty == other.ty
+    }
+}
+
 /// A field.
 #[derive(Clone, Debug, PartialEq)]
 pub enum WrappedField {
