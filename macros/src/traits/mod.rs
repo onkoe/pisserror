@@ -5,80 +5,47 @@
 
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote_spanned;
-use syn::{spanned::Spanned as _, DeriveInput, Item, Variant};
 
-use crate::util;
+use crate::{parse_enum::UserEnum, util};
 
 mod display;
 mod error;
 mod from;
 
-pub fn derive_error(input: DeriveInput) -> syn::Result<TokenStream2> {
-    let input_span = input.span();
-    let input_ident = input.ident.clone();
-
-    // make sure we've been given an enum.
-    let Item::Enum(item) = Item::from(input) else {
-        // remind user to use an enum.
-        return Err(syn::Error::new_spanned(
-            input_ident,
-            "You must use an `enum` when deriving types with `pisserror`.",
-        ));
-    };
-
-    let after_span = item.brace_token.span.close();
-
-    let name = item.ident;
-    let variants = item.variants;
-
-    // Rust's Error type is defined as: `Error: Debug + Display`. to satisfy
-    // `Debug`, we need to make sure the enum implements it.
-    //
-    // let debug_check = ...; // TODO: do some fancy checks. maybe assertions with an internal type?
-    //
-    // HEY! the compiler already does this for us! a nice error message might be preferable, though!
-
-    // check `From` impl eligibility
-    let variants_with_froms = from::fields_with_from_attrs(input_span, &variants)?;
-
-    // for each variant, make them a from block
-    let froms = variants_with_froms
-        .iter()
-        .map(|(v, t)| from::from(&name, v, t));
+pub fn derive_error(user_enum: UserEnum) -> syn::Result<TokenStream2> {
+    // make a from block for each variant
+    let froms = user_enum.from();
 
     // make all Error impl fns...
-    let source = error::source(
-        &variants,
-        &variants_with_froms
-            .iter()
-            .map(|(v, _)| *v)
-            .collect::<Vec<&Variant>>(),
-        &name,
-    )?; // TODO: check after_span
-    let description = error::description();
-    let cause = error::cause();
+    let source = user_enum.source();
+    let description = UserEnum::description();
+    let cause = UserEnum::cause();
 
     // ...and all Display impl fns
-    let fmt = display::fmt(after_span, &variants, &name)?;
+    let fmt = user_enum.fmt();
 
-    let error_path = util::create_path(input_span, &["std", "error", "Error"]);
-    let display_path = util::create_path(input_span, &["core", "fmt", "Display"]);
+    let error_path = util::create_path(user_enum.span(), &["std", "error", "Error"]);
+    let display_path = util::create_path(user_enum.span(), &["core", "fmt", "Display"]);
+
+    // some extra variables to make quote not scare me as much
+    let enum_ident = user_enum.ident();
+    let after_span = user_enum.after_span();
 
     // put all those together!
     let impl_block = quote_spanned! {after_span=>
         #[automatically_derived]
-        impl #error_path for #name {
+        impl #error_path for #enum_ident {
             #source
             #description
             #cause
         }
 
         #[automatically_derived]
-        impl #display_path for #name {
+        impl #display_path for #enum_ident {
             #fmt
         }
 
-        #(#froms)*
+        #froms
     };
 
     Ok(impl_block)

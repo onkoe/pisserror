@@ -4,101 +4,70 @@
 
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{punctuated::Punctuated, token::Comma, Ident, Variant};
 
-use crate::{traits::from, util};
+use crate::parse_enum::{field::WrappedFields, UserEnum};
 
-/// Parses the user's enum's variants to check for any internal `#[from]`
-/// attributes, then generates code that matches on any given error variant.
-///
-/// # Attribute Rules
-///
-/// The `#[from]` attribute assumes it's only used once per variant.
-///
-/// As such, the following code shouldn't compile:
-///
-/** ```compile_fail
-use macros::Error;
-use std::error::Error;
+impl UserEnum {
+    /// The `Error` trait's `source` method.
+    pub fn source(&self) -> TokenStream2 {
+        let match_arms = self.variants().iter().map(|v| {
+            match &v.from_attribute {
+                // aw crap, we're an attribute. let's make some custom match arms...
+                Some(info) => {
+                    let variant_path = v.variant_path(self.ident());
+                    let from_ident = &info.ident;
 
-#[derive(Debug, Error)]
-enum SomeError {
-    // you can't have two `#[from]` attrs on one variant!
-    #[error("hello")]
-    TwoAttrsOneField(#[from] std::io::Error, #[from] std::fmt::Error),
-}
-``` */
-pub fn source(
-    variants: &Punctuated<Variant, Comma>,
-    variant_froms: &[&Variant],
-    enum_name: &Ident,
-) -> syn::Result<TokenStream2> {
-    // store each variant's match arm, if it's even there!
-    let match_arms = variants.iter().map(|v| {
-        let is_from = variant_froms.contains(&v);
-
-        match is_from {
-            true => {
-                // do some parsing nonsense
-                let match_head = util::variant::make_variant_path(enum_name, &v.ident);
-
-                match &v.fields {
-                    syn::Fields::Named(_) => {
-                        // get the identifier for the contained error
-                        let container_err_ident = from::from_variants_identifer(v);
-
-                        quote! {
-                            #match_head {ref #container_err_ident} => Some(#container_err_ident)
+                    match v.fields {
+                        WrappedFields::Named(_) => {
+                            quote! { #variant_path { ref #from_ident} => Some(#from_ident)}
+                        }
+                        WrappedFields::Unnamed(_) => quote! { #variant_path(ref e) => Some(e) },
+                        WrappedFields::Unit => {
+                            unreachable!("unit enums cannot have a #[from] field")
                         }
                     }
-                    syn::Fields::Unnamed(_) => quote! {
-                        #match_head(ref e) => Some(e)
-                    },
-                    syn::Fields::Unit => quote! {
-                        #match_head => None
-                    },
+                }
+
+                // no #[from], so just give it None
+                None => {
+                    let left_side = v.match_head(self.ident());
+                    quote! {#left_side => None}
                 }
             }
-            false => {
-                // smooth sailing, baby!
-                let match_head = util::variant::make_match_head(enum_name, v);
+        });
 
-                quote! {
-                    #match_head => None
+        quote! {
+            fn source(&self) -> Option<&(dyn Error + 'static)> {
+                match *self {
+                    #(#match_arms),*
                 }
             }
-        }
-    });
-
-    Ok(quote! {
-        fn source(&self) -> Option<&(dyn Error + 'static)> {
-            match *self {
-                #(#match_arms),*
-            }
-        }
-    })
-}
-
-/// The method this generates is deprecated in favor of `Display`/`ToString`
-/// on Error types, so we can safely return an empty string slice.
-pub fn description() -> TokenStream2 {
-    // TODO: consider using `Display` instead? check with other libraries b4.
-
-    quote! {
-        fn description(&self) -> &str {
-            &""
         }
     }
-}
 
-/// The empty "cause" of the error. Now deprecated in favor of `source`, which
-/// has the 'static bound.
-///
-/// As such, the method it generates always returns None.
-pub fn cause() -> TokenStream2 {
-    quote! {
-        fn cause(&self) -> Option<&dyn Error> {
-            None
+    /// The `Error` trait's `descritpion` method.
+    ///
+    /// The method this generates is deprecated in favor of `Display`/`ToString`
+    /// on Error types, so we can safely return an empty string slice.
+    pub fn description() -> TokenStream2 {
+        // TODO: consider using `Display` instead? check with other libraries b4.
+
+        quote! {
+            fn description(&self) -> &str {
+                &""
+            }
+        }
+    }
+
+    /// The `Error` trait's `cause` method. Now deprecated in favor of
+    /// `source`, which has the 'static bound.
+    ///
+    /// As such, this code always returns None.
+    pub fn cause() -> TokenStream2 {
+        quote! {
+            fn cause(&self) -> Option<&dyn Error> {
+                None
+            }
         }
     }
 }

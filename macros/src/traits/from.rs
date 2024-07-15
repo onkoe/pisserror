@@ -2,109 +2,51 @@
 //!
 //! Implements the `From` trait for the user's error type.
 
-use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
-use quote::{quote, quote_spanned};
-use syn::{punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, Type, Variant};
+use proc_macro2::TokenStream as TokenStream2;
+use quote::quote;
 
-use crate::util::create_path;
+use crate::parse_enum::{field::WrappedFields, UserEnum};
 
-/// Returns a list of the variants who have `#[from]` attributes, alongside the
-/// errors they implement.
-///
-/// However, passes back an `Err` when the attribute's usages are wrong.
-pub fn fields_with_from_attrs(
-    span: Span2,
-    variants: &Punctuated<Variant, Comma>,
-) -> syn::Result<Vec<(&Variant, &Type)>> {
-    let from_attr: syn::Path = create_path(span, &["from"]);
-    let mut list = Vec::with_capacity(variants.len());
+impl UserEnum {
+    /// Returns ALL `From` implementations for the `#[from]` variants of the
+    /// user's enum.
+    pub fn from(&self) -> TokenStream2 {
+        let enum_ident = self.ident();
 
-    for variant in variants {
-        let mut already_found_from_attr = false; // whether or not we found one
+        // create a new `From<external::Error> for UserError` for each from variant
+        let from_impls = self
+            .variants()
+            .iter()
+            .filter(|v| v.from_attribute.is_some())
+            .map(|from_v| {
+                let variant_ident = from_v.ident.clone();
+                let from_attr = from_v.from_attribute.clone().unwrap();
+                let from_type = from_attr.ty;
 
-        // look over each variant's field's attrs for the `#[from]` annotation!
-        for field in &variant.fields {
-            for attr in &field.attrs {
-                if attr.path() == &from_attr {
-                    // each variant can have one `#[from]` field
-                    if already_found_from_attr {
-                        return Err(syn::Error::new_spanned(
-                            attr,
-                            "You may only have one `#[from]` attribute per variant.",
-                        ));
+                // let's decide which style to use during construction
+                let style = match &from_v.fields {
+                    WrappedFields::Named(_) => {
+                        let from_ident = from_attr.ident.unwrap();
+                        quote!(#enum_ident::#variant_ident {#from_ident: value})
                     }
-
-                    // if we have `#[from]`, there can be no other fields on this variant
-                    if variant.fields.len() > 1 {
-                        return Err(syn::Error::new_spanned(
-                            variant,
-                            "A variant containing a field with the `#[from]` \
-                            attribute must have only one field.\n
-                            
-                            Please see: \
-                            https://github.com/onkoe/pisserror/issues/11#issuecomment-2215435824",
-                        ));
+                    WrappedFields::Unnamed(_) => {
+                        quote!(#enum_ident::#variant_ident(value))
                     }
+                    WrappedFields::Unit => unreachable!(),
+                };
 
-                    // otherwise, remember the From<Type> we were given
-                    already_found_from_attr = true;
-                    // add variant to vec alongside its `From<Type>`
-                    list.push((variant, &field.ty));
+                quote! {
+                    #[automatically_derived]
+                    impl core::convert::From<#from_type> for #enum_ident {
+                        fn from(value: #from_type) -> Self {
+                            #style
+                        }
+                    }
                 }
-            }
-        }
-    }
+            });
 
-    // return the list we made
-    Ok(list)
-}
-
-/// Gets the identifier for a `#[from]` variant's field.
-///
-/// ONLY PASS THIS FUNCTION A VARIANT WHOSE FIELD HAS A FROM ATTR.
-/// TODO: make this take some custom enum type:
-///       - NormalVariant(Variant)
-///       - FromVariant(Variant, Type)
-pub fn from_variants_identifer(variant: &Variant) -> Ident {
-    match &variant.fields {
-        syn::Fields::Unit | syn::Fields::Unnamed(_) => {
-            unreachable!("we should never get a `#[from]` variant with no/unnamed fields")
-        }
-        syn::Fields::Named(n) => n
-            .named
-            .first()
-            .expect("a variant with a field will always have a first field")
-            .ident
-            .clone()
-            .expect("a named field will always be named"),
-    }
-}
-
-/// Creates a `From<other::Error> for UserError` impl for the given variant
-/// and field.
-pub fn from(enum_name: &Ident, variant: &Variant, ty: &Type) -> TokenStream2 {
-    // TODO: HEY! DO NOT USE `fields_with_from_attrs` IN HERE! MAKE `derive.rs`
-    //       CALL + PASS IT IN! SAME WITH `error::source()`!!!
-
-    // grab the necessary names
-    let variant_name = &variant.ident;
-
-    // let's decide which style to use during construction
-    let style = match &variant.fields {
-        syn::Fields::Named(n) => {
-            let field_name = from_variants_identifer(variant);
-            quote_spanned!(n.span()=> #enum_name::#variant_name {#field_name: value})
-        }
-        syn::Fields::Unnamed(un) => quote_spanned!(un.span()=> #enum_name::#variant_name(value)),
-        syn::Fields::Unit => unreachable!(),
-    };
-
-    quote! {
-        #[automatically_derived]
-        impl core::convert::From<#ty> for #enum_name {
-            fn from(value: #ty) -> #enum_name {
-                #style
-            }
+        quote! {
+            #(#from_impls)*
         }
     }
 }
@@ -112,8 +54,8 @@ pub fn from(enum_name: &Ident, variant: &Variant, ty: &Type) -> TokenStream2 {
 #[cfg(test)]
 mod tests {
     mod field_checking_tests {
-        use crate::traits::from::fields_with_from_attrs;
-        use syn::{parse_quote, spanned::Spanned, ItemEnum};
+        use crate::parse_enum::UserEnum;
+        use syn::{parse_quote, ItemEnum};
 
         #[test]
         fn error_on_multiple_froms() {
@@ -125,8 +67,8 @@ mod tests {
                 }
             };
 
-            // it should have errors
-            assert!(fields_with_from_attrs(sauce.span(), &sauce.variants).is_err());
+            let user_enum = UserEnum::new(sauce.into());
+            assert!(user_enum.is_err());
         }
 
         #[test]
@@ -144,8 +86,10 @@ mod tests {
                 }
             };
 
+            let user_enum = UserEnum::new(sauce.into()).unwrap();
+
             // check it
-            assert!(fields_with_from_attrs(sauce.span(), &sauce.variants).is_ok());
+            let x = user_enum.from();
         }
 
         #[test]
@@ -162,7 +106,8 @@ mod tests {
                 }
             };
 
-            assert!(fields_with_from_attrs(sauce.span(), &sauce.variants).is_err());
+            let user_enum = UserEnum::new(sauce.into());
+            assert!(user_enum.is_err());
         }
     }
 
