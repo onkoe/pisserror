@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use proc_macro2::Span;
 use syn::{spanned::Spanned as _, Attribute, Field, Ident, Type};
 
@@ -19,78 +17,6 @@ pub enum FieldsType {
     Named,
     Unnamed,
     Unit,
-}
-
-pub trait FieldBuildingStep {}
-
-#[allow(unused)] // FIXME: why is this going off? it's literally being used right now
-pub struct CreationStep {}
-pub struct FromScanStep {}
-
-impl FieldBuildingStep for CreationStep {}
-impl FieldBuildingStep for FromScanStep {}
-
-pub struct WrappedFieldBuilder<T: FieldBuildingStep> {
-    field: Field,
-    _step: PhantomData<T>,
-}
-
-impl<T: FieldBuildingStep> WrappedFieldBuilder<T> {
-    /// Takes the info and attributes from a given field, consuming the field.
-    pub fn field_info_and_attrs(field: Field) -> (WrappedFieldInfo, Vec<Attribute>) {
-        let span = field.span();
-
-        let Field {
-            ident, ty, attrs, ..
-        } = field;
-
-        (WrappedFieldInfo { ident, ty, span }, attrs)
-    }
-
-    pub fn err_too_many_from_attributes(field_span: &Span) -> syn::Error {
-        syn::Error::new(
-            *field_span,
-            "You may only have one `#[from]` attribute per variant.",
-        )
-    }
-}
-
-impl WrappedFieldBuilder<FromScanStep> {
-    /// Checks this field for a `from` attribute. Returns an error if the
-    /// `from` rules are violated.
-    ///
-    /// Otherwise, you'll get a `WrappedField`.
-    pub fn scan_for_froms(self) -> syn::Result<WrappedField> {
-        let (field_info, attrs) = Self::field_info_and_attrs(self.field);
-        let field_span = &field_info.span;
-        let from_attribute_path = &util::create_path(field_info.span, &["from"]);
-
-        let mut already_found_from_attribute = false;
-
-        for attr in attrs {
-            if attr.path() == from_attribute_path {
-                if already_found_from_attribute {
-                    return Err(Self::err_too_many_from_attributes(field_span));
-                }
-
-                already_found_from_attribute = true;
-            }
-        }
-
-        Ok(match already_found_from_attribute {
-            true => WrappedField::FromAttribute(field_info),
-            false => WrappedField::Typical(field_info),
-        })
-    }
-}
-
-impl WrappedFieldBuilder<CreationStep> {
-    pub fn new(field: Field) -> WrappedFieldBuilder<FromScanStep> {
-        WrappedFieldBuilder {
-            field,
-            _step: PhantomData,
-        }
-    }
 }
 
 /// Some information about a field.
@@ -122,23 +48,91 @@ impl WrappedField {
             Self::Typical(_) => false,
         }
     }
+}
 
-    // TODO: remove whichever one of these i dont use
+pub struct WrappedFieldBuilder {
+    field: Field,
+}
 
-    #[allow(unused)]
-    pub fn info(&self) -> &WrappedFieldInfo {
-        match self {
-            WrappedField::Typical(info) | WrappedField::FromAttribute(info) => info,
-        }
+impl WrappedFieldBuilder {
+    pub fn new(field: Field) -> Self {
+        Self { field }
     }
 
-    #[allow(unused)]
-    pub fn into_info(self) -> WrappedFieldInfo {
-        match self {
-            WrappedField::Typical(info) | WrappedField::FromAttribute(info) => info,
+    /// Runs all build steps to create a `WrappedField`.
+    pub fn build(self) -> syn::Result<WrappedField> {
+        let split = FromAttributeSplit::split_field(self.field);
+        let checked = FromAttributeCheck::check_from(split)?;
+        Ok(checked.finish())
+    }
+}
+
+struct FromAttributeSplit {
+    field_info: WrappedFieldInfo,
+    attributes: Vec<Attribute>,
+}
+
+impl FromAttributeSplit {
+    /// Takes the info and attributes from a given field, consuming the field.
+    pub fn split_field(field: Field) -> Self {
+        let span = field.span();
+
+        let Field {
+            ident, ty, attrs, ..
+        } = field;
+
+        Self {
+            field_info: WrappedFieldInfo { ident, ty, span },
+            attributes: attrs,
         }
     }
 }
+
+struct FromAttributeCheck {
+    wrapped_field: WrappedField,
+}
+
+impl FromAttributeCheck {
+    /// Checks this field for a `from` attribute. Returns an error if the
+    /// `from` rules are violated.
+    pub fn check_from(split: FromAttributeSplit) -> syn::Result<Self> {
+        let (field_info, attrs) = (split.field_info, split.attributes);
+        let field_span = &field_info.span;
+        let from_attribute_path = &util::create_path(field_info.span, &["from"]);
+
+        let mut already_found_from_attribute = false;
+
+        for attr in attrs {
+            if attr.path() == from_attribute_path {
+                if already_found_from_attribute {
+                    return Err(Self::err_too_many_from_attributes(field_span));
+                }
+
+                already_found_from_attribute = true;
+            }
+        }
+
+        Ok(Self {
+            wrapped_field: match already_found_from_attribute {
+                true => WrappedField::FromAttribute(field_info),
+                false => WrappedField::Typical(field_info),
+            },
+        })
+    }
+
+    pub fn err_too_many_from_attributes(field_span: &Span) -> syn::Error {
+        syn::Error::new(
+            *field_span,
+            "You may only have one `#[from]` attribute per variant.",
+        )
+    }
+
+    /// Returns the created WrappedField, consuming `self`.
+    pub fn finish(self) -> WrappedField {
+        self.wrapped_field
+    }
+}
+
 /*
 #[cfg(test)]
 mod tests {

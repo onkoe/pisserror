@@ -64,7 +64,7 @@ impl FromAttributeCheck {
         // handles the attribute count check internally
         let fields = vfields
             .into_iter()
-            .map(move |f| WrappedFieldBuilder::new(f).scan_for_froms())
+            .map(move |f| WrappedFieldBuilder::new(f).build())
             .collect::<syn::Result<Vec<_>>>()?;
 
         let has_from_field = fields.iter().any(move |f| f.has_from_attribute());
