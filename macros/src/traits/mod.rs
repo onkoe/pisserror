@@ -6,7 +6,7 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote_spanned;
 
-use crate::{parse_enum::UserEnum, util};
+use crate::{parser::UserEnum, util};
 
 mod display;
 mod error;

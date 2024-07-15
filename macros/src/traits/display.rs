@@ -5,7 +5,7 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-use crate::parse_enum::UserEnum;
+use crate::parser::UserEnum;
 
 impl UserEnum {
     /// The `Display` trait's `fmt` method.

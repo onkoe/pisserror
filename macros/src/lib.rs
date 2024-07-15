@@ -4,11 +4,11 @@
 //!
 //! In a fair world, this would be done with [reflection](https://t.co/vTvZ8FVEak).
 
-use parse_enum::UserEnum;
+use parser::UserEnum;
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 
-mod parse_enum;
+mod parser;
 mod traits;
 mod util;
 

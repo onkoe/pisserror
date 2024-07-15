@@ -5,7 +5,7 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-use crate::parse_enum::{field::WrappedFields, UserEnum};
+use crate::parser::{field::WrappedFields, UserEnum};
 
 impl UserEnum {
     /// The `Error` trait's `source` method.

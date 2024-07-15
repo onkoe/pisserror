@@ -343,7 +343,7 @@ struct DoctestFromAttr;
 
 #[cfg(test)]
 mod tests {
-    use crate::parse_enum::UserEnum;
+    use crate::parser::UserEnum;
 
     #[test]
     fn struct_like_one_field() {

@@ -5,7 +5,7 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-use crate::parse_enum::{field::WrappedFields, UserEnum};
+use crate::parser::{field::WrappedFields, UserEnum};
 
 impl UserEnum {
     /// Returns ALL `From` implementations for the `#[from]` variants of the
@@ -54,7 +54,7 @@ impl UserEnum {
 #[cfg(test)]
 mod tests {
     mod field_checking_tests {
-        use crate::parse_enum::UserEnum;
+        use crate::parser::UserEnum;
         use syn::{parse_quote, ItemEnum};
 
         #[test]
