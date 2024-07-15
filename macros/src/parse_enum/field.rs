@@ -6,6 +6,7 @@ use syn::{spanned::Spanned as _, Attribute, Field, Ident, Type};
 use crate::util;
 
 /// Something like `syn::Fields`, but all the fields have been checked.
+#[derive(Clone, Debug, PartialEq)]
 pub enum WrappedFields {
     Named(Vec<WrappedField>),
     Unnamed(Vec<WrappedField>),
@@ -13,6 +14,7 @@ pub enum WrappedFields {
 }
 
 /// `syn::Fields`, minus the fields. This is here to avoid some nasty logic.
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub enum FieldsType {
     Named,
     Unnamed,
@@ -21,6 +23,7 @@ pub enum FieldsType {
 
 pub trait FieldBuildingStep {}
 
+#[allow(unused)] // FIXME: why is this going off? it's literally being used right now
 pub struct CreationStep {}
 pub struct FromScanStep {}
 
@@ -91,7 +94,7 @@ impl WrappedFieldBuilder<CreationStep> {
 }
 
 /// Some information about a field.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WrappedFieldInfo {
     pub ident: Option<Ident>,
     pub ty: Type,
@@ -99,7 +102,7 @@ pub struct WrappedFieldInfo {
 }
 
 /// A field.
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum WrappedField {
     Typical(WrappedFieldInfo),
     FromAttribute(WrappedFieldInfo),
@@ -116,12 +119,14 @@ impl WrappedField {
 
     // TODO: remove whichever one of these i dont use
 
+    #[allow(unused)]
     pub fn info(&self) -> &WrappedFieldInfo {
         match self {
             WrappedField::Typical(info) | WrappedField::FromAttribute(info) => info,
         }
     }
 
+    #[allow(unused)]
     pub fn into_info(self) -> WrappedFieldInfo {
         match self {
             WrappedField::Typical(info) | WrappedField::FromAttribute(info) => info,
