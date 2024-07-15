@@ -139,3 +139,45 @@ impl WrappedField {
         }
     }
 }
+/*
+#[cfg(test)]
+mod tests {
+    use crate::parse_enum::{
+        field::{self, WrappedField, WrappedFieldInfo, WrappedFields},
+        UserEnum,
+    };
+    use syn::{ItemEnum, Type};
+
+    #[test]
+    #[allow(unused)]
+    fn finds_tuple_fields() {
+        let sauce: ItemEnum = syn::parse_quote! {
+            #[derive(Debug, Error)]
+            enum MyEnum {
+                #[error("hey wazzup")]
+                MyTupleVariant(i32, String, i16)
+            }
+        };
+
+        let uenum = UserEnum::new(sauce.into()).unwrap();
+        let fields = uenum.variants.first().unwrap().fields.clone();
+        let WrappedFields::Unnamed(a) = fields else {
+            panic!();
+        };
+
+        //let span = a.first().unwrap().clone().into_info().span;
+        // let x =
+
+        //base.clone().into_info().span
+
+        // assert_eq!(
+        //     a,
+        //     vec![WrappedField::Typical(WrappedFieldInfo {
+        //         ident: None,
+        //         ty: ?,
+        //         span: uenum.span()
+        //     })]
+        // )
+    }
+}
+    */

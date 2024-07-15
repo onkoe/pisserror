@@ -281,6 +281,66 @@ impl WrappedVariant {
     }
 }
 
+/**
+To implement `Display`, we need to parse the given error message for each
+variant.
+
+However, there needs to be one error attribute per - not more, not less.
+
+I've made some tests below verifying this assumption.
+
+First, having no `#[error]` attribute should fail:
+```compile_fail
+use macros::Error;
+use std::error::Error;
+
+#[derive(Debug, Error)]
+#[allow(unused)]
+enum MyError {
+    VariantOne,
+}
+```
+
+Also, you can't have too many of them, either:
+
+```compile_fail
+use macros::Error;
+use std::error::Error;
+
+#[derive(Debug, Error)]
+#[allow(unused)]
+enum MyError {
+    #[error("first attr")]
+    #[error("second attr")]
+    VariantOne,
+}
+``` */
+#[allow(unused)]
+struct DoctestErrorAttr;
+
+/// Parses the user's enum's variants to check for any internal `#[from]`
+/// attributes, then generates code that matches on any given error variant.
+///
+/// # Attribute Rules
+///
+/// The `#[from]` attribute assumes it's only used once per variant.
+///
+/// As such, the following code shouldn't compile:
+///
+/** ```compile_fail
+use macros::Error;
+use std::error::Error;
+
+#[derive(Debug, Error)]
+enum SomeError {
+    // you can't have two `#[from]` attrs on one variant!
+    #[error("hello")]
+    TwoAttrsOneField(#[from] std::io::Error, #[from] std::fmt::Error),
+}
+``` */
+#[allow(unused)]
+struct DoctestFromAttr;
+
 #[cfg(test)]
 mod tests {
     use crate::parse_enum::UserEnum;
