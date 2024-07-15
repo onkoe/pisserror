@@ -6,7 +6,7 @@ A golden replacement for `thiserror`.
 
 ## Usage
 
-You'll likely find `pisserror` to be pretty familiar. Here's a small sample of its current usage.
+You'll likely find `pisserror` to be pretty familiar. As with `thiserror`, it derives `Error` for any enum you give to it. Here's a sample of its current usage:
 
 ```rust
 use pisserror::Error;
