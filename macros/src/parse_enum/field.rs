@@ -78,7 +78,7 @@ impl WrappedFieldBuilder<FromScanStep> {
         }
 
         Ok(match already_found_from_attribute {
-            true => WrappedField::Typical(field_info),
+            true => WrappedField::FromAttribute(field_info),
             false => WrappedField::Typical(field_info),
         })
     }
