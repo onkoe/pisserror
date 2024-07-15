@@ -2,9 +2,9 @@ use proc_macro2::Span;
 use syn::{spanned::Spanned as _, DeriveInput, Ident, Item};
 use variant::{WrappedVariant, WrappedVariantBuilder};
 
-mod attr;
-mod field;
-mod variant;
+pub mod attr;
+pub mod field;
+pub mod variant;
 
 pub struct UserEnum {
     ident: Ident,
