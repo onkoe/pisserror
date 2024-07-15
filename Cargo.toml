@@ -2,7 +2,7 @@
 name = "pisserror"
 description = "A golden rip-off of thiserror"
 authors = ["Barrett Ray <contact@barretts.club>"]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 readme = "README.md"
 license = "MIT"
