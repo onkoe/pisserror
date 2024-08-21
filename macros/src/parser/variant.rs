@@ -342,7 +342,8 @@ struct DoctestFromAttr;
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::UserEnum;
+    use crate::parser::{field, variant, UserEnum};
+    use syn::{parse_quote, ItemEnum};
 
     #[test]
     fn struct_like_one_field() {
@@ -375,5 +376,60 @@ mod tests {
             result.to_string(),
             quote!(#enum_ident::#variant_ident{..}).to_string()
         );
+    }
+
+    #[test]
+    fn parses_from_variants_correctly() {
+        let sauce: ItemEnum = parse_quote! {
+            enum Piss {
+                #[error("💦 💛")]
+                FromVariantOne(#[from] std::io::Error),
+                #[error("r# don't break please r#\n\r# r# 3###\n# ## ##")]
+                FromVariantTwo {
+                    #[from]
+                    from: std::collections::TryReserveError,
+                },
+                #[error("laaaame!")]
+                LameVariant,
+            }
+        };
+
+        // check if the fieldbuilder is fucking up
+        let v2_results = field::WrappedFieldBuilder::new(
+            sauce.variants[1].fields.iter().next().unwrap().clone(),
+        )
+        .build()
+        .unwrap();
+
+        match v2_results {
+            field::WrappedField::Typical(ref info) => panic!("{:?}", info.ident),
+            field::WrappedField::FromAttribute(_) => (),
+        };
+
+        assert!(v2_results.has_from_attribute());
+
+        assert_eq!(
+            sauce
+                .clone()
+                .variants
+                .into_iter()
+                .map(|v| variant::FromAttributeCheck::check_fields(v)
+                    .unwrap()
+                    .from_attribute
+                    .is_some())
+                .collect::<Vec<bool>>(),
+            vec![true, true, false]
+        );
+
+        let user_enum = UserEnum::new(sauce.into()).unwrap();
+
+        let expected = vec![true, true, false];
+        let got: Vec<bool> = user_enum
+            .variants
+            .iter()
+            .map(|v| v.from_attribute.is_some())
+            .collect();
+
+        assert_eq!(expected, got)
     }
 }

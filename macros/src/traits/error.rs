@@ -15,11 +15,12 @@ impl UserEnum {
                 // aw crap, we're an attribute. let's make some custom match arms...
                 Some(info) => {
                     let variant_path = v.variant_path(self.ident());
-                    let from_ident = &info.ident;
 
                     match v.fields {
                         WrappedFields::Named(_) => {
-                            quote! { #variant_path { ref #from_ident} => Some(#from_ident)}
+                            let from_ident = info.ident.clone().unwrap();
+                            quote! { #variant_path { ref #from_ident } => Some(#from_ident)}
+                            // named_arm
                         }
                         WrappedFields::Unnamed(_) => quote! { #variant_path(ref e) => Some(e) },
                         WrappedFields::Unit => {
@@ -69,5 +70,70 @@ impl UserEnum {
                 None
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use proc_macro2::TokenStream as TokenStream2;
+    use syn::{parse_quote, ItemEnum};
+
+    use crate::parser::UserEnum;
+
+    #[test]
+    fn source_should_use_from() {
+        let sauce: ItemEnum = parse_quote! {
+            enum Piss {
+                #[error("💦 💛")]
+                FromVariantOne(#[from] std::io::Error),
+                #[error("r# don't break please r#\n\r# r# 3###\n# ## ##")]
+                FromVariantTwo {
+                    #[from]
+                    any_name_you_want: std::collections::TryReserveError,
+                },
+                #[error("laaaame!")]
+                LameVariant,
+            }
+        };
+        let user_enum = UserEnum::new(sauce.into()).unwrap();
+
+        dbg!(user_enum.variants().first());
+
+        let expected: TokenStream2 = parse_quote! {
+            fn source(&self) -> Option<&(dyn Error + 'static)> {
+                match *self {
+                    Piss::FromVariantOne(ref e) => Some(e),
+                    Piss::FromVariantTwo { ref any_name_you_want } => Some(any_name_you_want),
+                    Piss::LameVariant => None
+                }
+            }
+        };
+        let got = user_enum.source();
+
+        assert_eq!(expected.to_string(), got.to_string())
+    }
+
+    #[test]
+    fn description_shouldnt_change() {
+        let expected: TokenStream2 = parse_quote! {
+            fn description(&self) -> &str {
+                &""
+            }
+        };
+        let got = UserEnum::description();
+
+        assert_eq!(expected.to_string(), got.to_string())
+    }
+
+    #[test]
+    fn cause_shouldnt_change() {
+        let expected: TokenStream2 = parse_quote! {
+            fn cause(&self) -> Option<&dyn Error> {
+                None
+            }
+        };
+        let got = UserEnum::cause();
+
+        assert_eq!(expected.to_string(), got.to_string())
     }
 }

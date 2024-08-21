@@ -53,74 +53,98 @@ impl UserEnum {
 
 #[cfg(test)]
 mod tests {
-    mod field_checking_tests {
-        use crate::parser::UserEnum;
-        use syn::{parse_quote, ItemEnum};
+    use crate::parser::{variant, UserEnum};
+    use proc_macro2::TokenStream as TokenStream2;
+    use syn::{parse_quote, spanned::Spanned as _, ItemEnum};
 
-        #[test]
-        fn error_on_multiple_froms() {
-            // make the enum
-            let sauce: ItemEnum = parse_quote! {
-                enum MyError {
-                    #[error("some variant? uh oh")]
-                    // you may not have multiple from attributes, so this should fail
-                    SomeVariant(#[from] std::io::Error, #[from] std::collection::TryReserveError)
-                }
-            };
+    #[test]
+    fn error_on_multiple_froms() {
+        // make the enum
+        let sauce: ItemEnum = parse_quote! {
+            enum MyError {
+                #[error("some variant? uh oh")]
+                // you may not have multiple from attributes, so this should fail
+                SomeVariant(#[from] std::io::Error, #[from] std::collections::TryReserveError)
+            }
+        };
 
-            let user_enum = UserEnum::new(sauce.into());
-            assert!(user_enum.is_err());
-        }
+        let span = sauce.span();
 
-        #[test]
-        fn works_with_many_variants() {
-            // make the enum
-            let sauce: ItemEnum = parse_quote! {
-                // these variants all have one from - it should work great!
-                enum MyError {
-                    #[error("one")]
-                    VariantOne(#[from] std::io::Error),
-                    #[error("two")]
-                    VariantTwo(#[from] std::collection::TryReserveError),
-                    #[error("three")]
-                    VariantThree {
-                        #[from]
-                        some_field: std::array::TryFromSliceError,
-                    }
-                }
-            };
-
-            let user_enum = UserEnum::new(sauce.into()).unwrap();
-
-            // check it
-            let x = user_enum.from();
-        }
-
-        #[test]
-        fn errs_with_multiple_fields() {
-            // make the enum
-            let sauce: ItemEnum = parse_quote! {
-                enum MyError {
-                    #[error("struct-like variant")]
-                    // if a variant's field has a `#[from]` attr, it MUST be the only field
-                    StructLikeVariant {
-                        #[from]
-                        some_error_type: std::io::Error,
-                        favorite_number: u32,
-                    }
-                }
-            };
-
-            let user_enum = UserEnum::new(sauce.into());
-            assert!(user_enum.is_err());
-        }
+        let user_enum = UserEnum::new(sauce.into());
+        assert_eq!(
+            user_enum.err().unwrap().to_string(),
+            variant::FromAttributeCheck::err_nonfrom_fields_not_permitted(&span).to_string()
+        );
     }
 
-    mod from_trait_gen_tests {
-        #[test]
-        fn two_variants_one_error() {
-            // two variants with the same From<Error> should fail
-            // assert!(result.is_err());
-        }
+    #[test]
+    fn works_with_many_variants() {
+        // make the enum
+        let sauce: ItemEnum = parse_quote! {
+            // these variants all have one from - it should work great!
+            enum MyError {
+                #[error("one")]
+                VariantOne(#[from] std::io::Error),
+                #[error("two")]
+                VariantTwo(#[from] std::collections::TryReserveError),
+                #[error("three")]
+                VariantThree {
+                    #[from]
+                    some_field: std::array::TryFromSliceError,
+                }
+            }
+        };
+
+        let user_enum = UserEnum::new(sauce.into()).unwrap();
+
+        let expected: TokenStream2 = parse_quote! {
+            #[automatically_derived]
+            impl core::convert::From<std::io::Error> for MyError {
+                fn from(value: std::io::Error) -> Self {
+                    MyError::VariantOne(value)
+                }
+            }
+            #[automatically_derived]
+            impl core::convert::From<std::collections::TryReserveError> for MyError {
+                fn from(value: std::collections::TryReserveError) -> Self {
+                    MyError::VariantTwo(value)
+                }
+            }
+            #[automatically_derived]
+            impl core::convert::From<std::array::TryFromSliceError> for MyError {
+                fn from(value: std::array::TryFromSliceError) -> Self {
+                    MyError::VariantThree {
+                        some_field: value
+                    }
+                }
+            }
+        };
+
+        // check it
+        assert_eq!(user_enum.from().to_string(), expected.to_string())
+    }
+
+    #[test]
+    fn errs_with_multiple_fields() {
+        // make the enum
+        let sauce: ItemEnum = parse_quote! {
+            enum MyError {
+                #[error("struct-like variant")]
+                // if a variant's field has a `#[from]` attr, it MUST be the only field
+                StructLikeVariant {
+                    #[from]
+                    some_error_type: std::io::Error,
+                    favorite_number: u32,
+                }
+            }
+        };
+
+        let span = sauce.span();
+        let user_enum = UserEnum::new(sauce.into());
+
+        assert_eq!(
+            user_enum.err().unwrap().to_string(),
+            variant::FromAttributeCheck::err_nonfrom_fields_not_permitted(&span).to_string()
+        );
     }
 }
