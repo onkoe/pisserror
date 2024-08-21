@@ -108,6 +108,14 @@ impl FromAttributeCheck {
                     return Err(Self::err_too_many_from_attributes(field_span));
                 }
 
+                // check if the attr has some args
+                match attr.meta {
+                    syn::Meta::List(_) | syn::Meta::NameValue(_) => {
+                        return Err(Self::err_from_attribute_has_args(&attr.span()))
+                    }
+                    syn::Meta::Path(_) => (), // good. there are no args in `#[from]`
+                }
+
                 already_found_from_attribute = true;
             }
         }
@@ -124,6 +132,13 @@ impl FromAttributeCheck {
         syn::Error::new(
             *field_span,
             "You may only have one `#[from]` attribute per variant.",
+        )
+    }
+
+    pub fn err_from_attribute_has_args(attribute_span: &Span) -> syn::Error {
+        syn::Error::new(
+            *attribute_span,
+            "The `#[from]` attribute does not take any arguments, but some were found.",
         )
     }
 

@@ -45,4 +45,7 @@ There are a few ground rules, though:
 The only note I have for now is to generate the README using `cargo-rdme`. The crate includes a configuration file for this tool, so it should just work.
 */
 
+#[cfg(doctest)]
+pub mod _doctests;
+
 pub use macros::Error;
