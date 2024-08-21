@@ -114,8 +114,8 @@ impl FromAttributeCheck {
 /// checks that:
 /// - variant has an error tag.
 /// - the error tag should either:
-///    - have a string, or
-///    - extract a string when on a `from` variant. (TODO(#15))
+///    - have a string, or be
+///    - #[error(transparent)] for a from variant
 pub(crate) struct ErrorAttributeCheck {
     /// not all variants use a `#[from]` attr
     ident: Ident,
@@ -140,19 +140,23 @@ impl ErrorAttributeCheck {
 
         // warning: this mutates error_attributes (the iterator is being consumed)
         let (first, second) = (error_attributes.next(), error_attributes.next());
-        let slice = &[first, second];
 
         // check if we got any problems. otherwise, grab the metalist for f-string
-        let err_attr_args = match slice {
-            [None, _] => {
+        let error_attribute = match (first, second) {
+            (None, _) => {
                 return Err(Self::err_missing_error_attr(span));
             }
-            [Some(_), Some(second_err_attr)] => {
+            (Some(_), Some(second_err_attr)) => {
                 return Err(Self::err_multiple_error_attrs(second_err_attr));
             }
-            [Some(attr), None] => {
+            (Some(attr), None) => {
                 let Meta::List(ref attr_args) = attr.meta else {
-                    return Err(Self::err_nothing_to_display(attr));
+                    // give a more specific error, depending on if we have a `#[from]` field
+                    return Err(if from_attribute.is_some() {
+                        Self::err_nothing_to_display_from(attr)
+                    } else {
+                        Self::err_nothing_to_display(attr)
+                    });
                 };
 
                 // make sure the attribute has something inside it
@@ -160,7 +164,23 @@ impl ErrorAttributeCheck {
                     return Err(Self::err_nothing_to_display(attr));
                 }
 
-                attr_args
+                let transparent_check =
+                    { attr_args.tokens.to_string() == ErrorAttribute::TRANSPARENT_LITERAL };
+
+                // let transparent_attr_path =
+                //     &util::create_path(span, &[ErrorAttribute::TRANSPARENT_LITERAL]);
+
+                // check if we're stringy or just have `transparent`
+                if transparent_check {
+                    // ok now make sure we have a `#[from]` attr
+                    if from_attribute.is_none() {
+                        return Err(Self::err_transparent_requires_from_variant(attr));
+                    }
+
+                    ErrorAttribute::Transparent
+                } else {
+                    ErrorAttribute::Stringy(attr_args.tokens.clone())
+                }
             }
         };
 
@@ -168,9 +188,7 @@ impl ErrorAttributeCheck {
             ident,
             fields,
             from_attribute,
-            error_attribute: ErrorAttribute {
-                format_string: err_attr_args.tokens.clone(),
-            },
+            error_attribute,
         })
     }
 
@@ -202,7 +220,23 @@ impl ErrorAttributeCheck {
         syn::Error::new_spanned(
             attr,
             "An `#[error(...)]` attribute must contain a format_args!() \
-            f-string for implementing Display.",
+            f-string to implement `Display`.",
+        )
+    }
+
+    fn err_nothing_to_display_from(attr: &Attribute) -> syn::Error {
+        syn::Error::new_spanned(
+            attr,
+            "A `#[from]` variant's `#[error(...)]` attribute must contain \
+            `transparent` or a valid format_args!() f-string.",
+        )
+    }
+
+    fn err_transparent_requires_from_variant(attr: &Attribute) -> syn::Error {
+        syn::Error::new_spanned(
+            attr,
+            "An `#[error(transparent)]` attribute requires a field marked with \
+            `#[from]`.",
         )
     }
 }

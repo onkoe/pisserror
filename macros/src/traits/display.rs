@@ -5,10 +5,23 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-use crate::parser::UserEnum;
+use crate::parser::{attr::ErrorAttribute, UserEnum};
 
 impl UserEnum {
     /// The `Display` trait's `fmt` method.
+    ///
+    /// Let's check up on the result with some tests.
+    /**
+
+    ```compile_fail
+    #[derive(Debug, Error)]
+    enum Transparent {
+        #[error(transparent)]
+        VariantWithoutFrom,
+    }
+    ```
+
+     */
     pub fn fmt(&self) -> TokenStream2 {
         let match_arms = if self.variants().is_empty() {
             // if there are no variants, add a catch-all arm.
@@ -19,8 +32,29 @@ impl UserEnum {
                 .iter()
                 .map(|v| {
                     let match_head = v.filled_match_head(self.ident());
-                    let tokens = &v.error_attribute.format_string;
-                    quote! { #match_head => {f.write_str(format!(#tokens).as_str())} }
+
+                    // make the match arm
+                    match &v.error_attribute {
+                        ErrorAttribute::Stringy(format_args_str) => {
+                            quote! { #match_head => {f.write_str(format!(#format_args_str).as_str())} }
+                        }
+
+                        ErrorAttribute::Transparent => {
+                            // use our `#[from]` field. b/c we MUST have one.
+                            let from_field_ident = v
+                                .from_attribute
+                                .clone()
+                                .expect("a `transparent` variant will have a `#[from]` field.")
+                                .ident;
+
+                            // check if we even have an ident
+                            let format_args_str = match from_field_ident {
+                                Some(ident) => quote!(&#ident.to_string()),
+                                None => quote!(&_0.to_string()),
+                            };
+                            quote! { #match_head => { f.write_str(#format_args_str) }}
+                        }
+                    }
                 })
                 .collect()
         };
