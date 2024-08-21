@@ -33,7 +33,7 @@ impl WrappedVariantBuilder {
 ///
 /// checks that:
 /// - if a variant has a `from` attr, it has no more fields.
-struct FromAttributeCheck {
+pub(crate) struct FromAttributeCheck {
     /// not all variants use a `#[from]` attr
     from_attribute: Option<FromAttribute>,
 
@@ -78,6 +78,8 @@ impl FromAttributeCheck {
             // nope, we're clear! let's make the thingy
             if let WrappedField::FromAttribute(from_attr_info) = fields.first().cloned().unwrap() {
                 from = Some(from_attr_info);
+            } else {
+                panic!("we should have a from attr here!!!");
             }
         }
 
@@ -114,10 +116,9 @@ impl FromAttributeCheck {
 /// - the error tag should either:
 ///    - have a string, or
 ///    - extract a string when on a `from` variant. (TODO(#15))
-struct ErrorAttributeCheck {
+pub(crate) struct ErrorAttributeCheck {
     /// not all variants use a `#[from]` attr
     ident: Ident,
-    span: Span,
     fields: WrappedFields,
     from_attribute: Option<FromAttribute>,
     error_attribute: ErrorAttribute,
@@ -165,7 +166,6 @@ impl ErrorAttributeCheck {
 
         Ok(Self {
             ident,
-            span,
             fields,
             from_attribute,
             error_attribute: ErrorAttribute {
@@ -178,7 +178,6 @@ impl ErrorAttributeCheck {
     pub fn finish(self) -> WrappedVariant {
         WrappedVariant {
             ident: self.ident,
-            span: self.span,
             fields: self.fields,
             from_attribute: self.from_attribute,
             error_attribute: self.error_attribute,
@@ -208,9 +207,9 @@ impl ErrorAttributeCheck {
     }
 }
 
+#[derive(Debug)]
 pub struct WrappedVariant {
     pub ident: Ident,
-    pub span: Span,
     pub fields: WrappedFields,
     pub from_attribute: Option<FromAttribute>,
     pub error_attribute: ErrorAttribute,
