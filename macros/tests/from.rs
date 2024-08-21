@@ -1,5 +1,5 @@
 use macros::Error;
-use std::error::Error;
+use std::{error::Error, num::ParseIntError, str::ParseBoolError};
 
 // This one only has one attr, so it works fine.
 #[derive(Debug, Error)]
@@ -23,4 +23,15 @@ fn t() {
     let _some_struct_err = SomeStructEnumError::from(ioerr);
 
     // TODO: try formatting the error
+}
+
+#[derive(Debug, Error)]
+enum Transparent {
+    #[error(transparent)]
+    Structlike {
+        #[from]
+        err_is_from: ParseIntError,
+    },
+    #[error(transparent)]
+    Tuplelike(#[from] ParseBoolError),
 }
