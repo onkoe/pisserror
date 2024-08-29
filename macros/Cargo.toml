@@ -1,8 +1,8 @@
 [package]
 name = "pisserror_macros"
+description = "The internal implemenation of `pisserror`."
 version = "0.2.1"
 edition = "2021"
-license-file = "../LICENSE"
 authors = ["Barrett Ray <contact@barretts.club>"]
 license = "MIT"
 repository = "https://github.com/onkoe/pisserror"
