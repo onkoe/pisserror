@@ -1,4 +1,4 @@
-use macros::Error;
+use pisserror_macros::Error;
 use std::error::Error;
 
 // An error type whose one variant is struct-like

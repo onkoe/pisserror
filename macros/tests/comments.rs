@@ -1,4 +1,4 @@
-use macros::Error;
+use pisserror_macros::Error;
 use std::error::Error;
 
 #[derive(Debug, Error)]

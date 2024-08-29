@@ -1,4 +1,4 @@
-use macros::Error;
+use pisserror_macros::Error;
 use std::{error::Error, num::ParseIntError, str::ParseBoolError};
 
 // This one only has one attr, so it works fine.

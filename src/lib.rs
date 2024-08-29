@@ -48,4 +48,4 @@ The only note I have for now is to generate the README using `cargo-rdme`. The c
 #[cfg(doctest)]
 pub mod _doctests;
 
-pub use macros::Error;
+pub use pisserror_macros::Error;

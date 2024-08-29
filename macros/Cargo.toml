@@ -1,6 +1,6 @@
 [package]
-name = "macros"
-version = "0.1.0"
+name = "pisserror_macros"
+version = "0.2.1"
 edition = "2021"
 license-file = "../LICENSE"
 

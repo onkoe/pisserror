@@ -1,6 +1,6 @@
 //! This tests for error variants that use its fields within the error message.
 
-use macros::Error;
+use pisserror_macros::Error;
 use std::error::Error;
 
 /// An error type that has no variants (completely valid)

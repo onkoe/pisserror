@@ -1,4 +1,4 @@
-use macros::Error;
+use pisserror_macros::Error;
 use std::error::Error;
 
 #[derive(Debug, Error)]
@@ -12,7 +12,8 @@ enum MyErrorType {
 
 #[test]
 fn farts() -> Result<(), MyErrorType> {
-    let error = MyErrorType::Thing1;
-    eprintln!("{}", error);
+    let error: Result<i32, MyErrorType> = Err(MyErrorType::Thing1);
+
+    eprintln!("{:?}", error);
     Ok(())
 }
