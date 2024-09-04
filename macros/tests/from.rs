@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use core::{error::Error, num::ParseIntError, str::ParseBoolError};
+    use core::{num::ParseIntError, str::ParseBoolError};
     use pisserror_macros::Error;
+    use std::error::Error;
 
     // This one only has one attr, so it works fine.
     #[derive(Debug, Error)]

@@ -19,7 +19,7 @@ members = ["macros"]
 # an insane amount of lints from yours truly
 
 [lints.clippy]
-allow_attributes = "warn"
+# allow_attributes = "warn"
 as_ptr_cast_mut = "warn"
 as_underscore = "warn"
 borrow_as_ptr = "warn"

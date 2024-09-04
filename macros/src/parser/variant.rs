@@ -348,7 +348,7 @@ enum MyError {
     VariantOne,
 }
 ``` */
-#[expect(unused, reason = "This is used for doctests only.")]
+#[allow(unused)]
 struct DoctestErrorAttr;
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
@@ -371,7 +371,7 @@ enum SomeError {
     TwoAttrsOneField(#[from] std::io::Error, #[from] std::fmt::Error),
 }
 ``` */
-#[expect(unused, reason = "This is used for doctests only.")]
+#[allow(unused)]
 struct DoctestFromAttr;
 
 #[cfg(test)]
@@ -413,7 +413,7 @@ mod tests {
     }
 
     #[test]
-    #[expect(clippy::indexing_slicing, reason = "inside a test")]
+    #[allow(clippy::indexing_slicing)]
     fn parses_from_variants_correctly() {
         let sauce: ItemEnum = parse_quote! {
             enum Piss {

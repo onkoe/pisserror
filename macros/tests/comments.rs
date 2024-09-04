@@ -1,8 +1,8 @@
-use core::error::Error;
 use pisserror_macros::Error;
+use std::error::Error;
 
 #[derive(Debug, Error)]
-#[expect(unused, reason = "just a compile test")]
+#[allow(unused)]
 enum MyError {
     // 1. hey hows it going
     // 2. yo pretty good how r u
@@ -13,10 +13,7 @@ enum MyError {
     // ooo this is a weird place for a comment
     // and yet...
     // it works
-    #[expect(
-        clippy::allow_attributes,
-        reason = "testing regular external attribute handling"
-    )]
+    #[allow(clippy::allow_attributes)]
     #[allow(non_snake_case)]
     #[allow(non_snake_case)]
     Thing1,

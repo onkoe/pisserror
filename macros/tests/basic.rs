@@ -1,16 +1,16 @@
 #[cfg(test)]
-#[expect(clippy::print_stderr, reason = "to use the error")]
-#[expect(clippy::use_debug, reason = "to read the error")]
+#[allow(clippy::print_stderr)]
+#[allow(clippy::use_debug)]
 mod tests {
-    use core::error::Error;
     use pisserror_macros::Error;
+    use std::error::Error;
 
     #[derive(Debug, Error)]
     enum MyErrorType {
         #[error("1 {}", "am i a genius?")]
         Thing1,
         #[error("2")]
-        #[expect(dead_code, reason = "just an extra variant")]
+        #[allow(dead_code)]
         Thing2,
     }
 
