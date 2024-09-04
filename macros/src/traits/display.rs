@@ -61,7 +61,7 @@ impl UserEnum {
 
         quote! {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-                match self {
+                match *self {
                     #(#match_arms),*
                 }
             }

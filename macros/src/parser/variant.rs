@@ -305,7 +305,7 @@ impl WrappedVariant {
 
                 // FIXME(#14): users currently have to do `_0` which is... bad
                 quote! {
-                    &#variant_path(#(#field_range), *)
+                    #variant_path(#(#field_range), *)
                 }
             }
 
