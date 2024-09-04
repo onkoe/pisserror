@@ -42,7 +42,11 @@ There are a few ground rules, though:
 
 ### Making a Release
 
-The only note I have for now is to generate the README using `cargo-rdme`. The crate includes a configuration file for this tool, so it should just work.
+There are only a few steps to releasing this crate.
+
+1. Generate the `README.md` file using `cargo-rdme`.
+1. Change the version numbers in `/Cargo.toml` and `/macros/Cargo.toml`.
+1. Run `cargo publish`!
 */
 
 #[cfg(doctest)]
