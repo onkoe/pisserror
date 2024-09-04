@@ -10,7 +10,7 @@ use crate::parser::{field::WrappedFields, UserEnum};
 impl UserEnum {
     /// Returns ALL `From` implementations for the `#[from]` variants of the
     /// user's enum.
-    pub fn from(&self) -> TokenStream2 {
+    pub(crate) fn from(&self) -> TokenStream2 {
         let enum_ident = self.ident();
 
         // create a new `From<external::Error> for UserError` for each from variant
@@ -24,7 +24,7 @@ impl UserEnum {
                 let from_type = from_attr.ty;
 
                 // let's decide which style to use during construction
-                let style = match &from_v.fields {
+                let style = match from_v.fields {
                     WrappedFields::Named(_) => {
                         let from_ident = from_attr.ident.unwrap();
                         quote!(#enum_ident::#variant_ident {#from_ident: value})
@@ -73,7 +73,7 @@ mod tests {
         let user_enum = UserEnum::new(sauce.into());
         assert_eq!(
             user_enum.err().unwrap().to_string(),
-            variant::FromAttributeCheck::err_nonfrom_fields_not_permitted(&span).to_string()
+            variant::FromAttributeCheck::err_nonfrom_fields_not_permitted(span).to_string()
         );
     }
 
@@ -121,7 +121,7 @@ mod tests {
         };
 
         // check it
-        assert_eq!(user_enum.from().to_string(), expected.to_string())
+        assert_eq!(user_enum.from().to_string(), expected.to_string());
     }
 
     #[test]
@@ -144,7 +144,7 @@ mod tests {
 
         assert_eq!(
             user_enum.err().unwrap().to_string(),
-            variant::FromAttributeCheck::err_nonfrom_fields_not_permitted(&span).to_string()
+            variant::FromAttributeCheck::err_nonfrom_fields_not_permitted(span).to_string()
         );
     }
 }

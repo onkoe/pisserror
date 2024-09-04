@@ -12,7 +12,7 @@ mod display;
 mod error;
 mod from;
 
-pub fn derive_error(user_enum: UserEnum) -> syn::Result<TokenStream2> {
+pub(crate) fn derive_error(user_enum: &UserEnum) -> syn::Result<TokenStream2> {
     // make a from block for each variant
     let froms = user_enum.from();
 

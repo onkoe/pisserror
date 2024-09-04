@@ -22,7 +22,7 @@ impl UserEnum {
     ```
 
      */
-    pub fn fmt(&self) -> TokenStream2 {
+    pub(crate) fn fmt(&self) -> TokenStream2 {
         let match_arms = if self.variants().is_empty() {
             // if there are no variants, add a catch-all arm.
             // (this is because of the reference match rule)
@@ -34,8 +34,8 @@ impl UserEnum {
                     let match_head = v.filled_match_head(self.ident());
 
                     // make the match arm
-                    match &v.error_attribute {
-                        ErrorAttribute::Stringy(format_args_str) => {
+                    match v.error_attribute {
+                        ErrorAttribute::Stringy(ref format_args_str) => {
                             quote! { #match_head => {f.write_str(format!(#format_args_str).as_str())} }
                         }
 
@@ -48,10 +48,7 @@ impl UserEnum {
                                 .ident;
 
                             // check if we even have an ident
-                            let format_args_str = match from_field_ident {
-                                Some(ident) => quote!(&#ident.to_string()),
-                                None => quote!(&_0.to_string()),
-                            };
+                            let format_args_str = from_field_ident.map_or_else(|| quote!(&_0.to_string()), |ident| quote!(&#ident.to_string()));
                             quote! { #match_head => { f.write_str(#format_args_str) }}
                         }
                     }

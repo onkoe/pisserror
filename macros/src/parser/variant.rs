@@ -11,18 +11,18 @@ use super::{
 };
 
 /// A method to build a `WrappedVariant`.
-pub struct WrappedVariantBuilder {
+pub(crate) struct WrappedVariantBuilder {
     variant: Variant,
 }
 
 impl WrappedVariantBuilder {
     /// Creates a new `WrappedVariantBuilder` around a given `Variant`.
-    pub fn new(variant: Variant) -> Self {
+    pub(crate) const fn new(variant: Variant) -> Self {
         Self { variant }
     }
 
     /// Attempts to run all build steps to make a `WrappedVariant`.
-    pub fn build(self) -> syn::Result<WrappedVariant> {
+    pub(crate) fn build(self) -> syn::Result<WrappedVariant> {
         let from_attr_checked = FromAttributeCheck::check_fields(self.variant)?;
         let error_attr_checked = ErrorAttributeCheck::check_errors(from_attr_checked)?;
         Ok(error_attr_checked.finish())
@@ -46,7 +46,7 @@ pub(crate) struct FromAttributeCheck {
 
 impl FromAttributeCheck {
     /// Checks the given variant using the `#[from]` rules.
-    pub fn check_fields(variant: Variant) -> syn::Result<Self> {
+    pub(crate) fn check_fields(variant: Variant) -> syn::Result<Self> {
         let span = variant.span();
         let Variant {
             fields: vfields,
@@ -55,7 +55,7 @@ impl FromAttributeCheck {
             ..
         } = variant;
 
-        let fields_type = match &vfields {
+        let fields_type = match vfields {
             syn::Fields::Named(_) => field::FieldsType::Named,
             syn::Fields::Unnamed(_) => field::FieldsType::Unnamed,
             syn::Fields::Unit => field::FieldsType::Unit,
@@ -67,12 +67,12 @@ impl FromAttributeCheck {
             .map(move |f| WrappedFieldBuilder::new(f).build())
             .collect::<syn::Result<Vec<_>>>()?;
 
-        let has_from_field = fields.iter().any(move |f| f.has_from_attribute());
+        let has_from_field = fields.iter().any(WrappedField::has_from_attribute);
         let mut from = None;
 
         if has_from_field {
             if fields.len() > 1 {
-                return Err(Self::err_nonfrom_fields_not_permitted(&span));
+                return Err(Self::err_nonfrom_fields_not_permitted(span));
             }
 
             // nope, we're clear! let's make the thingy
@@ -100,9 +100,9 @@ impl FromAttributeCheck {
 
     /// An error asking users to remove additional fields when using
     /// the from attribute.
-    pub fn err_nonfrom_fields_not_permitted(field_span: &Span) -> syn::Error {
+    pub(crate) fn err_nonfrom_fields_not_permitted(field_span: Span) -> syn::Error {
         syn::Error::new(
-            *field_span,
+            field_span,
             "A variant containing a field with the `#[from]` attribute must only have one field. \
             Please see: https://github.com/onkoe/pisserror/issues/11#issuecomment-2215435824",
         )
@@ -125,7 +125,7 @@ pub(crate) struct ErrorAttributeCheck {
 }
 
 impl ErrorAttributeCheck {
-    pub fn check_errors(variant: FromAttributeCheck) -> syn::Result<Self> {
+    pub(crate) fn check_errors(variant: FromAttributeCheck) -> syn::Result<Self> {
         let FromAttributeCheck {
             from_attribute,
             ident,
@@ -193,7 +193,7 @@ impl ErrorAttributeCheck {
     }
 
     /// Since this is the last step, this creates the `WrappedVariant`.
-    pub fn finish(self) -> WrappedVariant {
+    pub(crate) fn finish(self) -> WrappedVariant {
         WrappedVariant {
             ident: self.ident,
             fields: self.fields,
@@ -242,7 +242,7 @@ impl ErrorAttributeCheck {
 }
 
 #[derive(Debug)]
-pub struct WrappedVariant {
+pub(crate) struct WrappedVariant {
     pub ident: Ident,
     pub fields: WrappedFields,
     pub from_attribute: Option<FromAttribute>,
@@ -253,7 +253,7 @@ impl WrappedVariant {
     /// Creates the path for this variant given the enum identifer.
     ///
     /// Paths look like: `EnumName::Variant`, with no extras.
-    pub fn variant_path(&self, enum_ident: Ident) -> Path {
+    pub(crate) fn variant_path(&self, enum_ident: Ident) -> Path {
         Path {
             leading_colon: None,
             segments: {
@@ -266,10 +266,10 @@ impl WrappedVariant {
     }
 
     /// Makes the head of a match arm. That is: `ThisPart(..) => { ... }`
-    pub fn match_head(&self, enum_ident: Ident) -> TokenStream2 {
+    pub(crate) fn match_head(&self, enum_ident: Ident) -> TokenStream2 {
         let variant_path = self.variant_path(enum_ident);
 
-        match &self.fields {
+        match self.fields {
             WrappedFields::Named(_) => quote! {#variant_path{..}},
             WrappedFields::Unnamed(_) => quote! {#variant_path(..)},
             WrappedFields::Unit => quote! {#variant_path},
@@ -278,14 +278,14 @@ impl WrappedVariant {
 
     /// A match head that's filled with identifiers. For example:
     /// `SomeEnum::SomeVariant::(_0, _1, _2)`
-    pub fn filled_match_head(&self, enum_ident: Ident) -> TokenStream2 {
+    pub(crate) fn filled_match_head(&self, enum_ident: Ident) -> TokenStream2 {
         let variant_path = self.variant_path(enum_ident);
 
-        match &self.fields {
-            WrappedFields::Named(n) => {
+        match self.fields {
+            WrappedFields::Named(ref n) => {
                 let list = n.iter().map(|field| {
-                    let name = match field {
-                        WrappedField::Typical(info) | WrappedField::FromAttribute(info) => {
+                    let name = match *field {
+                        WrappedField::Typical(ref info) | WrappedField::FromAttribute(ref info) => {
                             &info.ident
                         }
                     };
@@ -297,7 +297,7 @@ impl WrappedVariant {
                 }
             }
 
-            WrappedFields::Unnamed(un) => {
+            WrappedFields::Unnamed(ref un) => {
                 let field_range = (0..un.len()).map(|i| {
                     let ident = quote::format_ident!("_{}", i);
                     quote!(ref #ident)
@@ -348,7 +348,7 @@ enum MyError {
     VariantOne,
 }
 ``` */
-#[allow(unused)]
+#[expect(unused, reason = "This is used for doctests only.")]
 struct DoctestErrorAttr;
 
 /// Parses the user's enum's variants to check for any internal `#[from]`
@@ -371,7 +371,7 @@ enum SomeError {
     TwoAttrsOneField(#[from] std::io::Error, #[from] std::fmt::Error),
 }
 ``` */
-#[allow(unused)]
+#[expect(unused, reason = "This is used for doctests only.")]
 struct DoctestFromAttr;
 
 #[cfg(test)]
@@ -413,6 +413,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::indexing_slicing, reason = "inside a test")]
     fn parses_from_variants_correctly() {
         let sauce: ItemEnum = parse_quote! {
             enum Piss {
@@ -464,6 +465,6 @@ mod tests {
             .map(|v| v.from_attribute.is_some())
             .collect();
 
-        assert_eq!(expected, got)
+        assert_eq!(expected, got);
     }
 }

@@ -5,7 +5,7 @@
 use proc_macro2::Span as Span2;
 use syn::{punctuated::Punctuated, Ident, Path, PathSegment};
 
-pub fn create_path(span: Span2, ident_strs: &[&str]) -> Path {
+pub(crate) fn create_path(span: Span2, ident_strs: &[&str]) -> Path {
     Path {
         leading_colon: None,
         segments: {

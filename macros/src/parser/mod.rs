@@ -2,11 +2,11 @@ use proc_macro2::Span;
 use syn::{spanned::Spanned as _, DeriveInput, Ident, Item};
 use variant::{WrappedVariant, WrappedVariantBuilder};
 
-pub mod attr;
-pub mod field;
-pub mod variant;
+pub(crate) mod attr;
+pub(super) mod field;
+pub(super) mod variant;
 
-pub struct UserEnum {
+pub(crate) struct UserEnum {
     ident: Ident,
     span: Span,
     after_span: Span,
@@ -15,7 +15,7 @@ pub struct UserEnum {
 
 impl UserEnum {
     /// Attempts to parse the user's given enum into its required components.
-    pub fn new(input: DeriveInput) -> syn::Result<Self> {
+    pub(crate) fn new(input: DeriveInput) -> syn::Result<Self> {
         // check if we've been given an enum
         let (span, after_span, ident, variants) = match Item::from(input) {
             #[rustfmt::skip]
@@ -33,7 +33,7 @@ impl UserEnum {
             }
         };
 
-        Ok(UserEnum {
+        Ok(Self {
             ident,
             span,
             after_span,
@@ -42,22 +42,22 @@ impl UserEnum {
     }
 
     /// The given enum's identifier (name).
-    pub fn ident(&self) -> Ident {
+    pub(crate) fn ident(&self) -> Ident {
         self.ident.clone()
     }
 
     /// The source region of the given enum.
-    pub fn span(&self) -> Span {
+    pub(crate) const fn span(&self) -> Span {
         self.span
     }
 
     /// A span right outside of the enum's definition.
-    pub fn after_span(&self) -> Span {
+    pub(crate) const fn after_span(&self) -> Span {
         self.after_span
     }
 
     /// The available variants on the given enum.
-    pub fn variants(&self) -> &Vec<WrappedVariant> {
+    pub(crate) const fn variants(&self) -> &Vec<WrappedVariant> {
         &self.variants
     }
 

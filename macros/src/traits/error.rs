@@ -9,31 +9,25 @@ use crate::parser::{field::WrappedFields, UserEnum};
 
 impl UserEnum {
     /// The `Error` trait's `source` method.
-    pub fn source(&self) -> TokenStream2 {
+    pub(crate) fn source(&self) -> TokenStream2 {
         let match_arms = self.variants().iter().map(|v| {
-            match &v.from_attribute {
-                // aw crap, we're an attribute. let's make some custom match arms...
-                Some(info) => {
-                    let variant_path = v.variant_path(self.ident());
+            if let Some(ref info) = v.from_attribute {
+                let variant_path = v.variant_path(self.ident());
 
-                    match v.fields {
-                        WrappedFields::Named(_) => {
-                            let from_ident = info.ident.clone().unwrap();
-                            quote! { #variant_path { ref #from_ident } => Some(#from_ident)}
-                            // named_arm
-                        }
-                        WrappedFields::Unnamed(_) => quote! { #variant_path(ref e) => Some(e) },
-                        WrappedFields::Unit => {
-                            unreachable!("unit enums cannot have a #[from] field")
-                        }
+                match v.fields {
+                    WrappedFields::Named(_) => {
+                        let from_ident = info.ident.clone().unwrap();
+                        quote! { #variant_path { ref #from_ident } => Some(#from_ident)}
+                        // named_arm
+                    }
+                    WrappedFields::Unnamed(_) => quote! { #variant_path(ref e) => Some(e) },
+                    WrappedFields::Unit => {
+                        unreachable!("unit enums cannot have a #[from] field")
                     }
                 }
-
-                // no #[from], so just give it None
-                None => {
-                    let left_side = v.match_head(self.ident());
-                    quote! {#left_side => None}
-                }
+            } else {
+                let left_side = v.match_head(self.ident());
+                quote! {#left_side => None}
             }
         });
 
@@ -50,7 +44,7 @@ impl UserEnum {
     ///
     /// The method this generates is deprecated in favor of `Display`/`ToString`
     /// on Error types, so we can safely return an empty string slice.
-    pub fn description() -> TokenStream2 {
+    pub(crate) fn description() -> TokenStream2 {
         // TODO: consider using `Display` instead? check with other libraries b4.
 
         quote! {
@@ -64,7 +58,7 @@ impl UserEnum {
     /// `source`, which has the 'static bound.
     ///
     /// As such, this code always returns None.
-    pub fn cause() -> TokenStream2 {
+    pub(crate) fn cause() -> TokenStream2 {
         quote! {
             fn cause(&self) -> Option<&dyn Error> {
                 None
@@ -97,8 +91,6 @@ mod tests {
         };
         let user_enum = UserEnum::new(sauce.into()).unwrap();
 
-        dbg!(user_enum.variants().first());
-
         let expected: TokenStream2 = parse_quote! {
             fn source(&self) -> Option<&(dyn Error + 'static)> {
                 match *self {
@@ -110,7 +102,7 @@ mod tests {
         };
         let got = user_enum.source();
 
-        assert_eq!(expected.to_string(), got.to_string())
+        assert_eq!(expected.to_string(), got.to_string());
     }
 
     #[test]
@@ -122,7 +114,7 @@ mod tests {
         };
         let got = UserEnum::description();
 
-        assert_eq!(expected.to_string(), got.to_string())
+        assert_eq!(expected.to_string(), got.to_string());
     }
 
     #[test]
@@ -134,6 +126,6 @@ mod tests {
         };
         let got = UserEnum::cause();
 
-        assert_eq!(expected.to_string(), got.to_string())
+        assert_eq!(expected.to_string(), got.to_string());
     }
 }
