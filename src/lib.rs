@@ -46,6 +46,7 @@ There are only a few steps to releasing this crate.
 
 1. Generate the `README.md` file using `cargo-rdme`.
 1. Change the version numbers in `/Cargo.toml` and `/macros/Cargo.toml`.
+    - Under the `dependencies.pisserror_macros` section, you must also change the version number to match the new release.
 1. Run `cargo publish`!
 */
 

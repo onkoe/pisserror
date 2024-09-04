@@ -12,6 +12,7 @@ keywords = ["error", "derive-error", "thiserror", "error-handling"]
 
 [dependencies.pisserror_macros]
 path = "macros/"
+version = "0.2.3"
 
 [workspace]
 members = ["macros"]
