@@ -1,10 +1,10 @@
-use pisserror_macros::Error;
-use std::error::Error;
+#[cfg(test)]
+mod tests {
+    use core::error::Error;
+    use pisserror_macros::Error;
 
-/// An error type that has no variants (completely valid)
-#[derive(Debug, Error)]
-#[allow(unused)]
-enum BlankError {}
-
-#[test]
-fn _blank() {}
+    /// An error type that has no variants (completely valid)
+    #[derive(Debug, Error)]
+    #[expect(unused, reason = "compile test")]
+    enum BlankError {}
+}
