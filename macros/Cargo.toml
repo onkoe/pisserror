@@ -1,7 +1,7 @@
 [package]
 name = "pisserror_macros"
 description = "The internal implemenation of `pisserror`."
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 authors = ["Barrett Ray <contact@barretts.club>"]
 license = "MIT"
