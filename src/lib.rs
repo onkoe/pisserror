@@ -26,6 +26,15 @@ pub enum DatabaseError {
 }
 ```
 
+Also, you may wish to note that `pisserror` works with `#![no_std]`/embedded projects! Just ask `cargo add` to not use default features, like `cargo add pisserror --no-default-features`.
+
+Alternatively, you can add it to `Cargo.toml` by adding `default-features = false`:
+
+```toml
+[dependencies]
+pisserror = { version = (your version), default-features = false }
+```
+
 ## Feature Requests and Problems
 
 If there's something wrong or missing, please create a GitHub issue! Make sure to thoroughly describe your intentions.
