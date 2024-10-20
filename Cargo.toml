@@ -17,6 +17,10 @@ version = "0.2.3"
 [workspace]
 members = ["macros"]
 
+[features]
+default = ["std"]
+std = ["pisserror_macros/std"]
+
 # an insane amount of lints from yours truly
 
 [lints.clippy]
@@ -233,7 +237,6 @@ zero_sized_map_values = "warn"
 
 [lints.rust]
 absolute_paths_not_starting_with_crate = "warn"
-deprecated_safe = "warn"
 elided_lifetimes_in_paths = "warn"
 explicit_outlives_requirements = "warn"
 ffi_unwind_calls = "deny"

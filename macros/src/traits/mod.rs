@@ -24,7 +24,11 @@ pub(crate) fn derive_error(user_enum: &UserEnum) -> syn::Result<TokenStream2> {
     // ...and all Display impl fns
     let fmt = user_enum.fmt();
 
-    let error_path = util::create_path(user_enum.span(), &["std", "error", "Error"]);
+    let error_path = if cfg!(feature = "std") {
+        util::create_path(user_enum.span(), &["std", "error", "Error"])
+    } else {
+        util::create_path(user_enum.span(), &["core", "error", "Error"])
+    };
     let display_path = util::create_path(user_enum.span(), &["core", "fmt", "Display"]);
 
     // some extra variables to make quote not scare me as much

@@ -56,8 +56,14 @@ impl UserEnum {
                 .collect()
         };
 
+        let fmt_error = if cfg!(feature = "std") {
+            quote!(std::fmt::Error)
+        } else {
+            quote!(core::fmt::Error)
+        };
+
         quote! {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), #fmt_error> {
                 match *self {
                     #(#match_arms),*
                 }
