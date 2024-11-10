@@ -58,6 +58,7 @@ There are only a few steps to releasing this crate.
     - Under the `dependencies.pisserror_macros` section, you must also change the version number to match the new release.
 1. Run `cargo publish`!
 */
+#![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(doctest)]
 pub mod _doctests;
