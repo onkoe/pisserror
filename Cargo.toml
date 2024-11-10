@@ -2,7 +2,7 @@
 name = "pisserror"
 description = "A golden rip-off of thiserror"
 authors = ["Barrett Ray <contact@barretts.club>"]
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.2"
 edition = "2021"
 readme = "README.md"
 license = "MIT"
@@ -12,7 +12,7 @@ keywords = ["error", "derive-error", "thiserror", "error-handling"]
 
 [dependencies.pisserror_macros]
 path = "macros/"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.2"
 
 [workspace]
 members = ["macros"]
