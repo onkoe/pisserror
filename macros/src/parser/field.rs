@@ -116,6 +116,19 @@ impl FromAttributeCheck {
                     syn::Meta::Path(_) => (), // good. there are no args in `#[from]`
                 }
 
+                // if there are lifetimes on the from type, complain!
+                if let Type::Reference(ref inner) = field_info.ty {
+                    // but only if it's not static
+                    if let Some(ref lt) = inner.lifetime {
+                        if lt.ident != "static" {
+                            return Err(Self::err_from_attribute_field_has_nonstatic_lifetime(
+                                *field_span,
+                                lt.ident.span(),
+                            ));
+                        }
+                    }
+                }
+
                 already_found_from_attribute = true;
             }
         }
@@ -141,6 +154,23 @@ impl FromAttributeCheck {
             attribute_span,
             "The `#[from]` attribute does not take any arguments, but some were found.",
         )
+    }
+
+    fn err_from_attribute_field_has_nonstatic_lifetime(
+        field_span: Span,
+        lt_span: Span,
+    ) -> syn::Error {
+        let mut err = syn::Error::new(
+            field_span,
+            "Cannot implement `Error::source`. This type must be owned or use a 'static reference. ",
+        );
+
+        err.combine(syn::Error::new(
+            lt_span,
+            "Try changing this lifetime to be 'static, or remove it altogether.",
+        ));
+
+        err
     }
 
     /// Returns the created WrappedField, consuming `self`.

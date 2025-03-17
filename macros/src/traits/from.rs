@@ -13,6 +13,8 @@ impl UserEnum {
     pub(crate) fn from(&self) -> TokenStream2 {
         let enum_ident = self.ident();
 
+        let (impl_generics, type_generics, where_clause) = self.generics().split_for_impl();
+
         // create a new `From<external::Error> for UserError` for each from variant
         let from_impls = self
             .variants()
@@ -37,7 +39,7 @@ impl UserEnum {
 
                 quote! {
                     #[automatically_derived]
-                    impl core::convert::From<#from_type> for #enum_ident {
+                    impl #impl_generics core::convert::From<#from_type> for #enum_ident #type_generics #where_clause {
                         fn from(value: #from_type) -> Self {
                             #style
                         }

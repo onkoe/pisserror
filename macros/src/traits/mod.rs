@@ -31,6 +31,9 @@ pub(crate) fn derive_error(user_enum: &UserEnum) -> syn::Result<TokenStream2> {
     };
     let display_path = util::create_path(user_enum.span(), &["core", "fmt", "Display"]);
 
+    // grab generics to ensure our signature matches the enum
+    let (impl_generics, type_generics, where_clause) = user_enum.generics().split_for_impl();
+
     // some extra variables to make quote not scare me as much
     let enum_ident = user_enum.ident();
     let after_span = user_enum.after_span();
@@ -38,14 +41,14 @@ pub(crate) fn derive_error(user_enum: &UserEnum) -> syn::Result<TokenStream2> {
     // put all those together!
     let impl_block = quote_spanned! {after_span=>
         #[automatically_derived]
-        impl #error_path for #enum_ident {
+        impl #impl_generics #error_path for #enum_ident #type_generics #where_clause {
             #source
             #description
             #cause
         }
 
         #[automatically_derived]
-        impl #display_path for #enum_ident {
+        impl #impl_generics #display_path for #enum_ident #type_generics #where_clause {
             #fmt
         }
 
