@@ -1,7 +1,7 @@
 [package]
 name = "pisserror_macros"
 description = "The internal implemenation of `pisserror`."
-version = "0.3.0-rc.2"
+version.workspace = true
 edition = "2021"
 authors = ["Barrett Ray <contact@barretts.club>"]
 license = "MIT"
@@ -123,7 +123,7 @@ missing_const_for_fn = "warn"
 missing_errors_doc = "warn"
 missing_inline_in_public_items = "warn"
 missing_panics_doc = "warn"
-modulo_arithmetic = "deny"                  # never noticed Rust's behavior here before. better to stop it before i do... 
+modulo_arithmetic = "deny"                  # never noticed Rust's behavior here before. better to stop it before i do...
 mut_mut = "warn"
 mutex_atomic = "warn"
 mutex_integer = "warn"
@@ -183,7 +183,7 @@ str_split_at_newline = "warn"
 string_add = "warn"
 string_add_assign = "warn"
 string_lit_chars_any = "warn"
-string_slice = "deny"                       # nope! let's just avoid this 
+string_slice = "deny"                       # nope! let's just avoid this
 string_to_string = "deny"
 struct_excessive_bools = "warn"
 struct_field_names = "warn"

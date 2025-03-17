@@ -89,7 +89,6 @@ mod _lifetimes_and_generics {
 
     #[derive(Debug, Error)]
     #[expect(unused)]
-    #[expect(variant_size_differences)]
     enum MyError<'a, 'b, T: core::fmt::Debug, Q: core::fmt::Debug + 'b> {
         #[error("borrowed generic")]
         RefGeneric { t: &'a T, q: Q },

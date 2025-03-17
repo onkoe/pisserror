@@ -2,20 +2,22 @@
 name = "pisserror"
 description = "A golden rip-off of thiserror"
 authors = ["Barrett Ray <contact@barretts.club>"]
-version = "0.3.0"
+version.workspace = true
 edition = "2021"
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/onkoe/pisserror"
 categories = ["rust-patterns", "development-tools"]
 keywords = ["error", "derive-error", "thiserror", "error-handling"]
+rust-version = "1.65.0"
 
 [dependencies.pisserror_macros]
 path = "macros/"
-version = "0.3.0-rc.2"
+version = "0.3.0"
 
 [workspace]
 members = ["macros"]
+package.version = "0.3.0"
 
 [features]
 default = ["std"]
