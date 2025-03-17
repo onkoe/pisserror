@@ -44,7 +44,10 @@ jobs:
       - name: Install tools/linters
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-deny,cargo-semver-checks
+          tool: cargo-deny,cargo-semver-checks,cargo-msrv
+
+      - name: Verify minimum supported Rust version (MSRV)
+        run: cargo msrv verify
 
       - name: Scan for semantic versioning mistakes
         run: cargo semver-checks
