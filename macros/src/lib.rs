@@ -15,7 +15,7 @@ pub(crate) mod util;
 /// Derives `core::error::Error` from special syntax.
 #[proc_macro_derive(Error, attributes(error, from))]
 pub fn derive_error(input: TokenStream) -> TokenStream {
-    // FIXME: all derives must be in the root module for some reason...
+    // all derives must be in the root module...
     let synd_input = parse_macro_input!(input as DeriveInput);
 
     let user_enum = match UserEnum::new(synd_input) {
