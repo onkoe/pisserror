@@ -50,7 +50,7 @@ impl UserEnum {
     }
 
     /// Generic bounds (including lifetimes) on the enum.
-    pub(crate) fn generics(&self) -> &Generics {
+    pub(crate) const fn generics(&self) -> &Generics {
         &self.generics
     }
 

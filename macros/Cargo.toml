@@ -8,6 +8,7 @@ license = "MIT"
 repository = "https://github.com/onkoe/pisserror"
 keywords = ["internal", "pisserror"]
 categories = ["development-tools::procedural-macro-helpers"]
+rust-version.workspace = true
 
 [lib]
 proc-macro = true
