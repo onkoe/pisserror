@@ -8,6 +8,24 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  macro_version:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+        # this'll fail if `pisserror` exports a mistmatched version of the macro
+      - name: Check for macro version mismatch
+        run: |
+          cargo metadata --format-version=1 | jq -r -e '.packages[]
+          | select(.name == "pisserror")
+          | {"dep_ver": .dependencies[] | select(.name == "pisserror_macros").req, "workspace_ver": .version}
+          | . as $json | $json.dep_ver | contains($json.workspace_ver)'
+
   lints:
     runs-on: ubuntu-22.04
     steps:
